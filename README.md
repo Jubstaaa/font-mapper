@@ -6,6 +6,12 @@
 
 **Map any website's fonts to your local fonts — per domain, instantly.**
 
+<p>
+  <a href="https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn"><img alt="Chrome Web Store" src="https://img.shields.io/chrome-web-store/v/gfdmhpidmomcbghfoejkcpjdklbdcdnn?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4"></a>
+  <a href="https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn"><img alt="Users" src="https://img.shields.io/chrome-web-store/users/gfdmhpidmomcbghfoejkcpjdklbdcdnn?color=4285F4"></a>
+  <a href="https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn"><img alt="Rating" src="https://img.shields.io/chrome-web-store/rating/gfdmhpidmomcbghfoejkcpjdklbdcdnn?color=4285F4"></a>
+</p>
+
 </div>
 
 <p align="center">
@@ -52,7 +58,9 @@ Per-domain preferences are persisted via `chrome.storage.local` — never sent a
 
 ### From the Chrome Web Store
 
-Coming soon.
+[**Install FontMapper from the Chrome Web Store →**](https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn)
+
+> The store listing goes live once Google's review completes.
 
 ### From source
 
