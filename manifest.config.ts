@@ -12,7 +12,7 @@ export default defineManifest({
     name: 'FontMapper',
     version: '0.2.0',
     description: 'Map any website’s fonts to your local fonts — per domain.',
-    permissions: ['activeTab', 'storage', 'fontSettings', 'scripting'],
+    permissions: ['activeTab', 'storage', 'fontSettings'],
     host_permissions: ['<all_urls>'],
     icons,
     action: {
