@@ -18,8 +18,6 @@ import { loadMappingsForHost, saveMappingsForHost, type FontMap } from '@/lib/ch
 import { FontMappingRow } from './font-mapping-row'
 import type { PopupStatus } from './popup.types'
 
-const SAVE_DEBOUNCE_MS = 200
-
 export function Popup() {
     // ━━━ 4. LOCAL STATE ━━━
     const [status, setStatus] = useState<PopupStatus>('loading')
@@ -30,67 +28,27 @@ export function Popup() {
     const [mappings, setMappings] = useState<FontMap>({})
 
     const portRef = useRef<chrome.runtime.Port | null>(null)
-    const saveTimerRef = useRef<number | null>(null)
 
     // ━━━ 6. DERIVED STATE ━━━
     const mappedCount = useMemo(() => Object.keys(mappings).length, [mappings])
     const totalCount = usedFonts.length
 
     // ━━━ 7. EVENT HANDLERS ━━━
-    const persist = useCallback(
-        (host: string, next: FontMap) => {
-            if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current)
-            saveTimerRef.current = window.setTimeout(() => {
-                void saveMappingsForHost(host, next)
-            }, SAVE_DEBOUNCE_MS)
-        },
-        [],
-    )
-
-    const flush = useCallback(
-        (host: string, next: FontMap) => {
-            if (saveTimerRef.current != null) {
-                window.clearTimeout(saveTimerRef.current)
-                saveTimerRef.current = null
-            }
-            return saveMappingsForHost(host, next)
-        },
-        [],
-    )
-
     const handleChange = useCallback(
         async (source: string, target: string | null) => {
             const next: FontMap = { ...mappings }
             if (target === null) {
                 delete next[source]
             } else {
-                const prev = next[source]
-                next[source] = { font: target, scale: prev?.scale }
+                next[source] = target
             }
             setMappings(next)
-            await flush(hostname, next)
+            await saveMappingsForHost(hostname, next)
             if (tabId != null) {
                 await sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
             }
         },
-        [mappings, hostname, tabId, flush],
-    )
-
-    const handleScaleChange = useCallback(
-        (source: string, scale: number) => {
-            const current = mappings[source]
-            if (!current) return
-            const next: FontMap = {
-                ...mappings,
-                [source]: { ...current, scale: scale === 1 ? undefined : scale },
-            }
-            setMappings(next)
-            persist(hostname, next)
-            if (tabId != null) {
-                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
-            }
-        },
-        [mappings, hostname, tabId, persist],
+        [mappings, hostname, tabId],
     )
 
     const handleHover = useCallback((source: string, hovering: boolean) => {
@@ -108,11 +66,11 @@ export function Popup() {
 
     const handleReset = useCallback(async () => {
         setMappings({})
-        await flush(hostname, {})
+        await saveMappingsForHost(hostname, {})
         if (tabId != null) {
             await sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: {} })
         }
-    }, [hostname, tabId, flush])
+    }, [hostname, tabId])
 
     const handleReload = useCallback(() => {
         if (tabId != null) chrome.tabs.reload(tabId)
@@ -244,10 +202,9 @@ export function Popup() {
                                 <FontMappingRow
                                     key={font}
                                     source={font}
-                                    mapping={mappings[font] ?? null}
+                                    mapped={mappings[font] ?? null}
                                     options={localFonts}
                                     onChange={value => handleChange(font, value)}
-                                    onScaleChange={scale => handleScaleChange(font, scale)}
                                     onHover={hovering => handleHover(font, hovering)}
                                 />
                             ))}

@@ -21,16 +21,13 @@ function escapeFontName(name: string): string {
 
 function buildCss(mappings: FontMap): string {
     const rules: string[] = []
-    for (const [source, mapping] of Object.entries(mappings)) {
-        if (!mapping?.font) continue
+    for (const [source, target] of Object.entries(mappings)) {
+        if (!target) continue
         const s = escapeFontName(source)
-        const t = escapeFontName(mapping.font)
-        const scale = typeof mapping.scale === 'number' && mapping.scale > 0 && mapping.scale !== 1
-            ? ` size-adjust: ${(mapping.scale * 100).toFixed(2)}%;`
-            : ''
+        const t = escapeFontName(target)
         rules.push(
-            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: normal; font-weight: 100 1000; font-display: swap;${scale} }`,
-            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: italic; font-weight: 100 1000; font-display: swap;${scale} }`,
+            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: normal; font-weight: 100 1000; font-display: swap; }`,
+            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: italic; font-weight: 100 1000; font-display: swap; }`,
         )
     }
     return rules.join('\n')
@@ -53,11 +50,8 @@ function ensureHighlightStyle(): void {
     el.id = HIGHLIGHT_STYLE_ID
     el.textContent = `
         .${HIGHLIGHT_CLASS} {
-            outline: 2px solid #2563eb !important;
-            outline-offset: 1px !important;
-            background-color: rgba(37, 99, 235, 0.08) !important;
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15) !important;
-            transition: outline-color 80ms ease, background-color 80ms ease !important;
+            background-color: rgba(37, 99, 235, 0.12) !important;
+            transition: background-color 80ms ease !important;
         }
     `
     ;(document.documentElement || document).appendChild(el)

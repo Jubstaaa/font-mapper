@@ -1,11 +1,6 @@
 export const STORAGE_KEY = 'fontMapperMappings'
 
-export interface FontMapping {
-    font: string
-    scale?: number
-}
-
-export type FontMap = Record<string, FontMapping>
+export type FontMap = Record<string, string>
 export type FontMapStore = Record<string, FontMap>
 
 function normalizeMappings(raw: unknown): FontMap {
@@ -13,13 +8,14 @@ function normalizeMappings(raw: unknown): FontMap {
     const out: FontMap = {}
     for (const [source, value] of Object.entries(raw as Record<string, unknown>)) {
         if (typeof value === 'string' && value) {
-            out[source] = { font: value }
-        } else if (value && typeof value === 'object' && 'font' in value && typeof (value as FontMapping).font === 'string') {
-            const v = value as FontMapping
-            out[source] = {
-                font: v.font,
-                scale: typeof v.scale === 'number' && Number.isFinite(v.scale) ? v.scale : undefined,
-            }
+            out[source] = value
+        } else if (
+            value
+            && typeof value === 'object'
+            && 'font' in value
+            && typeof (value as { font: unknown }).font === 'string'
+        ) {
+            out[source] = (value as { font: string }).font
         }
     }
     return out
