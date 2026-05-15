@@ -29,6 +29,10 @@ Built for people who care about typography, accessibility, or just don't like ho
 - **One-click reset** — wipe all mappings for a site
 - **Zero data collection** — everything stays local, no network requests, no analytics, no accounts
 
+<p align="center">
+  <img src="store/screenshot-popup-1280x800.png" alt="FontMapper popup detecting fonts on a GitHub repo page" width="900" />
+</p>
+
 ## How it works
 
 Under the hood, FontMapper uses standard CSS `@font-face` with `local()` substitution:
@@ -73,7 +77,6 @@ bun install
 bun run dev        # Vite dev server + HMR (dist/ auto-rebuilds)
 bun run build      # Production build → dist/
 bun run typecheck  # tsc -b --noEmit
-bun run icons      # Regenerate manifest PNGs + 1280x800 store screenshot from SVG sources
 ```
 
 ## Tech stack
@@ -106,9 +109,7 @@ src/
 └── index.css                 Tailwind + design tokens
 
 public/                       Manifest icons (16/32/48/128)
-store/                        Chrome Web Store assets (screenshot, icon)
-scripts/
-└── generate-icons.ts         SVG → PNG asset pipeline (sharp)
+store/                        Chrome Web Store assets (icon, screenshots)
 ```
 
 ## Privacy
