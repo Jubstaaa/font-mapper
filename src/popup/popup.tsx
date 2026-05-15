@@ -16,6 +16,7 @@ import {
 import { loadMappingsForHost, saveMappingsForHost, type FontMap } from '@/lib/chrome-storage'
 
 import { FontMappingRow } from './font-mapping-row'
+import { Logo } from './logo'
 import type { PopupStatus } from './popup.types'
 
 export function Popup() {
@@ -139,10 +140,8 @@ export function Popup() {
     return (
         <div className="flex flex-col">
             <header className="border-b border-white/5 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 px-4 py-3.5 text-neutral-50">
-                <div className="flex items-center gap-2">
-                    <div className="flex size-6 items-center justify-center rounded-md bg-white text-[11px] font-bold tracking-tight text-neutral-900">
-                        Aa
-                    </div>
+                <div className="flex items-center gap-2.5">
+                    <Logo className="size-6 shrink-0 rounded-md" />
                     <h1 className="text-sm font-semibold tracking-tight">FontMapper</h1>
                     {status === 'ready' && totalCount > 0 && (
                         <Badge
