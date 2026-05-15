@@ -1,6 +1,8 @@
-.DS_Store
 node_modules
 dist
-*.zip
+.DS_Store
 .vscode
 .idea
+*.log
+*.zip
+bun.lockb
