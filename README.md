@@ -110,8 +110,7 @@ src/
 ├── popup/
 │   ├── popup.tsx             Main React component
 │   ├── font-mapping-row.tsx  Single row (source font → combobox)
-│   ├── font-combobox.tsx     Searchable combobox (cmdk + Radix Popover)
-│   └── logo.tsx              Inline SVG brand mark
+│   └── font-combobox.tsx     Searchable combobox (cmdk + Radix Popover)
 ├── components/ui/            shadcn primitives
 ├── main.tsx                  React entry
 └── index.css                 Tailwind + design tokens
