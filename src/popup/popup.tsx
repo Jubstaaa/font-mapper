@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, RefreshCw, RotateCcw, Type } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -6,12 +6,19 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { listLocalFonts } from '@/lib/chrome-fonts'
-import { sendToTab } from '@/lib/chrome-messaging'
+import {
+    POPUP_PORT_NAME,
+    sendToTab,
+    type ApplyMappingsResponse,
+    type GetUsedFontsResponse,
+    type PortMessage,
+} from '@/lib/chrome-messaging'
 import { loadMappingsForHost, saveMappingsForHost, type FontMap } from '@/lib/chrome-storage'
 
 import { FontMappingRow } from './font-mapping-row'
 import type { PopupStatus } from './popup.types'
-import type { ApplyMappingsResponse, GetUsedFontsResponse } from '@/lib/chrome-messaging'
+
+const SAVE_DEBOUNCE_MS = 200
 
 export function Popup() {
     // ━━━ 4. LOCAL STATE ━━━
@@ -22,35 +29,90 @@ export function Popup() {
     const [localFonts, setLocalFonts] = useState<string[]>([])
     const [mappings, setMappings] = useState<FontMap>({})
 
+    const portRef = useRef<chrome.runtime.Port | null>(null)
+    const saveTimerRef = useRef<number | null>(null)
+
     // ━━━ 6. DERIVED STATE ━━━
     const mappedCount = useMemo(() => Object.keys(mappings).length, [mappings])
     const totalCount = usedFonts.length
 
     // ━━━ 7. EVENT HANDLERS ━━━
+    const persist = useCallback(
+        (host: string, next: FontMap) => {
+            if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current)
+            saveTimerRef.current = window.setTimeout(() => {
+                void saveMappingsForHost(host, next)
+            }, SAVE_DEBOUNCE_MS)
+        },
+        [],
+    )
+
+    const flush = useCallback(
+        (host: string, next: FontMap) => {
+            if (saveTimerRef.current != null) {
+                window.clearTimeout(saveTimerRef.current)
+                saveTimerRef.current = null
+            }
+            return saveMappingsForHost(host, next)
+        },
+        [],
+    )
+
     const handleChange = useCallback(
         async (source: string, target: string | null) => {
             const next: FontMap = { ...mappings }
             if (target === null) {
                 delete next[source]
             } else {
-                next[source] = target
+                const prev = next[source]
+                next[source] = { font: target, scale: prev?.scale }
             }
             setMappings(next)
-            await saveMappingsForHost(hostname, next)
+            await flush(hostname, next)
             if (tabId != null) {
                 await sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
             }
         },
-        [mappings, hostname, tabId],
+        [mappings, hostname, tabId, flush],
     )
+
+    const handleScaleChange = useCallback(
+        (source: string, scale: number) => {
+            const current = mappings[source]
+            if (!current) return
+            const next: FontMap = {
+                ...mappings,
+                [source]: { ...current, scale: scale === 1 ? undefined : scale },
+            }
+            setMappings(next)
+            persist(hostname, next)
+            if (tabId != null) {
+                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
+            }
+        },
+        [mappings, hostname, tabId, persist],
+    )
+
+    const handleHover = useCallback((source: string, hovering: boolean) => {
+        const port = portRef.current
+        if (!port) return
+        try {
+            const message: PortMessage = hovering
+                ? { type: 'HIGHLIGHT_FONT', font: source }
+                : { type: 'CLEAR_HIGHLIGHT' }
+            port.postMessage(message)
+        } catch {
+            // port may have disconnected
+        }
+    }, [])
 
     const handleReset = useCallback(async () => {
         setMappings({})
-        await saveMappingsForHost(hostname, {})
+        await flush(hostname, {})
         if (tabId != null) {
             await sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: {} })
         }
-    }, [hostname, tabId])
+    }, [hostname, tabId, flush])
 
     const handleReload = useCallback(() => {
         if (tabId != null) chrome.tabs.reload(tabId)
@@ -93,6 +155,27 @@ export function Popup() {
             cancelled = true
         }
     }, [])
+
+    useEffect(() => {
+        if (tabId == null) return
+        try {
+            const port = chrome.tabs.connect(tabId, { name: POPUP_PORT_NAME })
+            portRef.current = port
+            port.onDisconnect.addListener(() => {
+                portRef.current = null
+            })
+            return () => {
+                try {
+                    port.disconnect()
+                } catch {
+                    // ignore
+                }
+                portRef.current = null
+            }
+        } catch {
+            return
+        }
+    }, [tabId])
 
     // ━━━ 9. RETURN ━━━
     return (
@@ -161,9 +244,11 @@ export function Popup() {
                                 <FontMappingRow
                                     key={font}
                                     source={font}
-                                    mapped={mappings[font] ?? null}
+                                    mapping={mappings[font] ?? null}
                                     options={localFonts}
                                     onChange={value => handleChange(font, value)}
+                                    onScaleChange={scale => handleScaleChange(font, scale)}
+                                    onHover={hovering => handleHover(font, hovering)}
                                 />
                             ))}
                         </ul>
