@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FontMapper</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <header class="header">
+        <div class="brand">
+            <span class="logo">Aa</span>
+            <h1>FontMapper</h1>
+        </div>
+        <div id="domain" class="domain"></div>
+    </header>
+    <main class="main">
+        <div id="loading" class="state">Scanning fonts on this page&hellip;</div>
+        <div id="empty" class="state hidden">No fonts detected.</div>
+        <div id="restricted" class="state hidden">FontMapper only works on http(s) pages.</div>
+        <ul id="mappings" class="mappings hidden"></ul>
+    </main>
+    <footer class="footer">
+        <div id="count" class="count"></div>
+        <button id="reset" class="reset" type="button">Reset for this site</button>
+    </footer>
+    <script src="popup.js"></script>
+</body>
+</html>
