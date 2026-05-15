@@ -20,7 +20,6 @@ import { Logo } from './logo'
 import type { PopupStatus } from './popup.types'
 
 export function Popup() {
-    // ━━━ 4. LOCAL STATE ━━━
     const [status, setStatus] = useState<PopupStatus>('loading')
     const [tabId, setTabId] = useState<number | null>(null)
     const [hostname, setHostname] = useState('')
@@ -30,11 +29,9 @@ export function Popup() {
 
     const portRef = useRef<chrome.runtime.Port | null>(null)
 
-    // ━━━ 6. DERIVED STATE ━━━
     const mappedCount = useMemo(() => Object.keys(mappings).length, [mappings])
     const totalCount = usedFonts.length
 
-    // ━━━ 7. EVENT HANDLERS ━━━
     const handleChange = useCallback(
         async (source: string, target: string | null) => {
             const next: FontMap = { ...mappings }
@@ -60,9 +57,7 @@ export function Popup() {
                 ? { type: 'HIGHLIGHT_FONT', font: source }
                 : { type: 'CLEAR_HIGHLIGHT' }
             port.postMessage(message)
-        } catch {
-            // port may have disconnected
-        }
+        } catch {}
     }, [])
 
     const handleReset = useCallback(async () => {
@@ -78,7 +73,6 @@ export function Popup() {
         window.close()
     }, [tabId])
 
-    // ━━━ 8. EFFECTS ━━━
     useEffect(() => {
         let cancelled = false
         ;(async () => {
@@ -126,9 +120,7 @@ export function Popup() {
             return () => {
                 try {
                     port.disconnect()
-                } catch {
-                    // ignore
-                }
+                } catch {}
                 portRef.current = null
             }
         } catch {
@@ -136,7 +128,6 @@ export function Popup() {
         }
     }, [tabId])
 
-    // ━━━ 9. RETURN ━━━
     return (
         <div className="flex flex-col">
             <header className="border-b border-white/5 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 px-4 py-3.5 text-neutral-50">

@@ -97,9 +97,7 @@ async function init(): Promise<void> {
     try {
         const mappings = await loadMappingsForHost(location.hostname)
         applyStyle(buildCss(mappings))
-    } catch {
-        // ignore
-    }
+    } catch {}
 }
 
 void init()
