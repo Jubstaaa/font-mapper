@@ -23,7 +23,7 @@ export function FontMappingRow({ source, mapped, options, onChange, onHover }: F
         >
             <div className="min-w-0 flex-1">
                 <div
-                    className="truncate text-[13px] text-foreground"
+                    className="truncate text-left text-[13px] text-foreground"
                     title={source}
                     style={{ fontFamily: `'${escapeFontName(source)}', sans-serif` }}
                 >

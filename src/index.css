@@ -83,7 +83,14 @@
         font-feature-settings: 'rlig' 1, 'calt' 1;
     }
     html, body {
-        width: 380px;
         min-height: 200px;
+    }
+    body[data-popup] {
+        width: 380px;
+    }
+
+    [data-radix-scroll-area-viewport] > div {
+        display: block !important;
+        min-width: 0 !important;
     }
 }
