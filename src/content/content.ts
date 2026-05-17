@@ -14,17 +14,26 @@ const HIGHLIGHT_STYLE_ID = '__font_mapper_highlight_style__'
 const HIGHLIGHT_CLASS = '__font_mapper_highlight__'
 
 const fontElementCache = new Map<string, WeakRef<Element>[]>()
+const activeFontFaces = new Map<string, FontFace[]>()
 
-function escapeFontName(name: string): string {
+function escapeSingleQuoted(name: string): string {
     return name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+}
+
+function escapeDoubleQuoted(name: string): string {
+    return name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+function resolveLocalName(mapping: { name: string; id?: string }): string {
+    return mapping.id || mapping.name
 }
 
 function buildCss(mappings: FontMap): string {
     const rules: string[] = []
-    for (const [source, target] of Object.entries(mappings)) {
-        if (!target) continue
-        const s = escapeFontName(source)
-        const t = escapeFontName(target)
+    for (const [source, mapping] of Object.entries(mappings)) {
+        if (!mapping?.name) continue
+        const s = escapeSingleQuoted(source)
+        const t = escapeSingleQuoted(resolveLocalName(mapping))
         rules.push(
             `@font-face { font-family: '${s}'; src: local('${t}'); font-style: normal; font-weight: 100 1000; font-display: swap; }`,
             `@font-face { font-family: '${s}'; src: local('${t}'); font-style: italic; font-weight: 100 1000; font-display: swap; }`,
@@ -33,15 +42,80 @@ function buildCss(mappings: FontMap): string {
     return rules.join('\n')
 }
 
+function clearFontFaces(): void {
+    for (const [, faces] of activeFontFaces) {
+        for (const face of faces) {
+            try {
+                document.fonts.delete(face)
+            } catch {}
+        }
+    }
+    activeFontFaces.clear()
+}
+
+async function applyFontFaces(mappings: FontMap): Promise<void> {
+    clearFontFaces()
+    for (const [source, mapping] of Object.entries(mappings)) {
+        if (!mapping?.name) continue
+        const src = `local("${escapeDoubleQuoted(resolveLocalName(mapping))}")`
+        const faces: FontFace[] = []
+        for (const style of ['normal', 'italic'] as const) {
+            const ff = new FontFace(source, src, {
+                style,
+                weight: '100 1000',
+                display: 'swap',
+            })
+            try {
+                const loaded = await ff.load()
+                document.fonts.add(loaded)
+                faces.push(loaded)
+            } catch {}
+        }
+        if (faces.length) activeFontFaces.set(source, faces)
+    }
+}
+
+function getStyleTarget(): Element {
+    return document.head || document.documentElement || document.body
+}
+
+function ensureLastChild(): void {
+    const el = document.getElementById(STYLE_ID)
+    if (!el) return
+    const target = getStyleTarget()
+    if (!target) return
+    if (target.lastElementChild !== el) {
+        target.appendChild(el)
+    }
+}
+
 function applyStyle(css: string): void {
-    const root = document.documentElement || document
     let el = document.getElementById(STYLE_ID) as HTMLStyleElement | null
     if (!el) {
         el = document.createElement('style')
         el.id = STYLE_ID
-        root.appendChild(el)
     }
     el.textContent = css
+    const target = getStyleTarget()
+    if (target) target.appendChild(el)
+}
+
+const styleObserver = new MutationObserver(records => {
+    for (const record of records) {
+        for (const node of record.addedNodes) {
+            if (!(node instanceof HTMLElement)) continue
+            if (node.id === STYLE_ID) continue
+            if (node.tagName === 'STYLE' || node.tagName === 'LINK') {
+                ensureLastChild()
+                return
+            }
+        }
+    }
+})
+
+function startObservers(): void {
+    const root = document.documentElement
+    if (root) styleObserver.observe(root, { childList: true, subtree: true })
 }
 
 function ensureHighlightStyle(): void {
@@ -93,17 +167,26 @@ function clearHighlight(): void {
     document.querySelectorAll('.' + HIGHLIGHT_CLASS).forEach(el => el.classList.remove(HIGHLIGHT_CLASS))
 }
 
+function apply(mappings: FontMap): void {
+    applyStyle(buildCss(mappings))
+    void applyFontFaces(mappings)
+}
+
 async function init(): Promise<void> {
     try {
         const mappings = await loadMappingsForHost(location.hostname)
-        applyStyle(buildCss(mappings))
+        apply(mappings)
     } catch {}
 }
 
+startObservers()
 void init()
 
+document.addEventListener('DOMContentLoaded', ensureLastChild)
+window.addEventListener('load', ensureLastChild)
+
 onMappingsChanged(store => {
-    applyStyle(buildCss(store[location.hostname] || {}))
+    apply(store[location.hostname] || {})
 })
 
 chrome.runtime.onMessage.addListener(
@@ -117,7 +200,7 @@ chrome.runtime.onMessage.addListener(
             return false
         }
         if ((msg as ApplyMappingsMessage)?.type === 'APPLY_MAPPINGS') {
-            applyStyle(buildCss((msg as ApplyMappingsMessage).mappings || {}))
+            apply((msg as ApplyMappingsMessage).mappings || {})
             sendResponse({ ok: true })
             return false
         }

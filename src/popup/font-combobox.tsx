@@ -23,7 +23,7 @@ export function FontCombobox({ value, options, placeholder = 'Map to local fontâ
     const [open, setOpen] = useState(false)
 
     return (
-        <div className="relative w-full">
+        <div className="relative w-full min-w-0">
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button
@@ -31,17 +31,17 @@ export function FontCombobox({ value, options, placeholder = 'Map to local fontâ
                         role="combobox"
                         aria-expanded={open}
                         className={cn(
-                            'h-8 w-full justify-between gap-1 px-2.5 text-xs font-normal',
-                            value ? 'pr-12' : 'pr-7 text-muted-foreground',
+                            'h-8 w-full min-w-0 justify-between gap-1 px-2.5 pr-7 text-xs font-normal',
+                            !value && 'text-muted-foreground',
                         )}
                     >
                         <span
-                            className="truncate"
+                            className="min-w-0 flex-1 truncate text-left"
                             style={value ? { fontFamily: `'${escapeFontName(value)}', sans-serif` } : undefined}
                         >
                             {value || placeholder}
                         </span>
-                        <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
+                        {!value && <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />}
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[260px] p-0" align="end" sideOffset={4}>
@@ -61,7 +61,7 @@ export function FontCombobox({ value, options, placeholder = 'Map to local fontâ
                                         className="text-xs"
                                         style={{ fontFamily: `'${escapeFontName(opt)}', sans-serif` }}
                                     >
-                                        <span className="truncate">{opt}</span>
+                                        <span className="min-w-0 flex-1 truncate">{opt}</span>
                                         <Check
                                             className={cn(
                                                 'ml-auto size-3.5 shrink-0',
@@ -85,7 +85,7 @@ export function FontCombobox({ value, options, placeholder = 'Map to local fontâ
                         onSelect(null)
                     }}
                     onPointerDown={e => e.stopPropagation()}
-                    className="absolute right-7 top-1/2 z-10 flex size-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground/70 hover:bg-accent hover:text-foreground"
+                    className="absolute right-1.5 top-1/2 z-10 flex size-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground/70 hover:bg-accent hover:text-foreground"
                 >
                     <X className="size-3" />
                 </button>

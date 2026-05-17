@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { listLocalFonts } from '@/lib/chrome-fonts'
+import type { LocalFont } from '@/lib/chrome-fonts'
+import { loadCachedLocalFonts } from '@/lib/chrome-storage'
 import {
     POPUP_PORT_NAME,
     sendToTab,
@@ -23,8 +24,14 @@ export function Popup() {
     const [tabId, setTabId] = useState<number | null>(null)
     const [hostname, setHostname] = useState('')
     const [usedFonts, setUsedFonts] = useState<string[]>([])
-    const [localFonts, setLocalFonts] = useState<string[]>([])
+    const [localFonts, setLocalFonts] = useState<LocalFont[]>([])
     const [mappings, setMappings] = useState<FontMap>({})
+
+    const localFontIndex = useMemo(() => {
+        const map = new Map<string, string>()
+        for (const f of localFonts) map.set(f.family, f.postscriptName)
+        return map
+    }, [localFonts])
 
     const portRef = useRef<chrome.runtime.Port | null>(null)
 
@@ -37,7 +44,8 @@ export function Popup() {
             if (target === null) {
                 delete next[source]
             } else {
-                next[source] = target
+                const psName = localFontIndex.get(target)
+                next[source] = psName ? { name: target, id: psName } : { name: target }
             }
             setMappings(next)
             await saveMappingsForHost(hostname, next)
@@ -45,7 +53,7 @@ export function Popup() {
                 await sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
             }
         },
-        [mappings, hostname, tabId],
+        [mappings, hostname, tabId, localFontIndex],
     )
 
     const handleHover = useCallback((source: string, hovering: boolean) => {
@@ -82,7 +90,14 @@ export function Popup() {
                 return
             }
 
-            const fonts = await listLocalFonts()
+            const fonts = await loadCachedLocalFonts()
+            if (cancelled) return
+
+            if (!fonts.length) {
+                setStatus('permission-required')
+                return
+            }
+
             const response = await sendToTab<GetUsedFontsResponse>(tab.id, { type: 'GET_USED_FONTS' })
             if (cancelled) return
 
@@ -92,7 +107,7 @@ export function Popup() {
 
             setTabId(tab.id)
             setHostname(host)
-            setLocalFonts(fonts.map(f => f.displayName))
+            setLocalFonts(fonts)
             setMappings(saved)
 
             if (!response) {
@@ -106,6 +121,16 @@ export function Popup() {
         return () => {
             cancelled = true
         }
+    }, [])
+
+    const handleOpenOptions = useCallback(() => {
+        chrome.runtime.openOptionsPage()
+        window.close()
+    }, [])
+
+    const handleRefreshFonts = useCallback(() => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('options.html?refresh=1') })
+        window.close()
     }, [])
 
     useEffect(() => {
@@ -181,6 +206,18 @@ export function Popup() {
                     </div>
                 )}
 
+                {status === 'permission-required' && (
+                    <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+                        <Type className="size-5 text-muted-foreground" />
+                        <p className="max-w-[260px] text-xs leading-relaxed text-muted-foreground">
+                            Open settings to grant access to your local fonts. This is a one-time setup.
+                        </p>
+                        <Button size="sm" onClick={handleOpenOptions} className="h-7 text-[11px]">
+                            Open settings
+                        </Button>
+                    </div>
+                )}
+
                 {status === 'ready' && totalCount === 0 && (
                     <div className="flex flex-col items-center justify-center gap-2 px-8 py-12 text-center text-muted-foreground">
                         <Type className="size-5" />
@@ -195,8 +232,8 @@ export function Popup() {
                                 <FontMappingRow
                                     key={font}
                                     source={font}
-                                    mapped={mappings[font] ?? null}
-                                    options={localFonts}
+                                    mapped={mappings[font]?.name ?? null}
+                                    options={localFonts.map(f => f.family)}
                                     onChange={value => handleChange(font, value)}
                                     onHover={hovering => handleHover(font, hovering)}
                                 />
@@ -224,6 +261,14 @@ export function Popup() {
                             Reset site
                         </Button>
                     </footer>
+                    <button
+                        type="button"
+                        onClick={handleRefreshFonts}
+                        className="flex w-full items-center justify-center gap-1 border-t border-border/60 bg-muted/30 py-1.5 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                        <RefreshCw className="size-2.5" />
+                        Refresh local fonts ({localFonts.length} cached)
+                    </button>
                 </>
             )}
         </div>
