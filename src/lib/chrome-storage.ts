@@ -1,6 +1,29 @@
 export const STORAGE_KEY = 'fontMapperMappings'
+export const FONT_CACHE_KEY = 'fontMapperLocalFonts'
 
-export type FontMap = Record<string, string>
+export interface CachedLocalFont {
+    family: string
+    fullName: string
+    postscriptName: string
+    style: string
+}
+
+export async function loadCachedLocalFonts(): Promise<CachedLocalFont[]> {
+    const result = await chrome.storage.local.get(FONT_CACHE_KEY)
+    const raw = result[FONT_CACHE_KEY]
+    return Array.isArray(raw) ? (raw as CachedLocalFont[]) : []
+}
+
+export async function saveCachedLocalFonts(fonts: CachedLocalFont[]): Promise<void> {
+    await chrome.storage.local.set({ [FONT_CACHE_KEY]: fonts })
+}
+
+export interface FontMapping {
+    name: string
+    id?: string
+}
+
+export type FontMap = Record<string, FontMapping>
 export type FontMapStore = Record<string, FontMap>
 
 function normalizeMappings(raw: unknown): FontMap {
@@ -8,14 +31,25 @@ function normalizeMappings(raw: unknown): FontMap {
     const out: FontMap = {}
     for (const [source, value] of Object.entries(raw as Record<string, unknown>)) {
         if (typeof value === 'string' && value) {
-            out[source] = value
+            out[source] = { name: value }
+        } else if (
+            value
+            && typeof value === 'object'
+            && 'name' in value
+            && typeof (value as FontMapping).name === 'string'
+        ) {
+            const v = value as FontMapping
+            out[source] = {
+                name: v.name,
+                id: typeof v.id === 'string' && v.id ? v.id : undefined,
+            }
         } else if (
             value
             && typeof value === 'object'
             && 'font' in value
             && typeof (value as { font: unknown }).font === 'string'
         ) {
-            out[source] = (value as { font: string }).font
+            out[source] = { name: (value as { font: string }).font }
         }
     }
     return out
