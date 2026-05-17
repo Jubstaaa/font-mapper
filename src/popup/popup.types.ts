@@ -1,4 +1,9 @@
-export type PopupStatus = 'loading' | 'restricted' | 'no-script' | 'ready'
+export type PopupStatus =
+    | 'loading'
+    | 'restricted'
+    | 'no-script'
+    | 'permission-required'
+    | 'ready'
 
 export interface FontMappingRowProps {
     source: string
