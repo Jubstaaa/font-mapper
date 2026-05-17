@@ -8,8 +8,12 @@
 
 <p>
   <a href="https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn"><img alt="Chrome Web Store" src="https://img.shields.io/chrome-web-store/v/gfdmhpidmomcbghfoejkcpjdklbdcdnn?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4"></a>
-  <a href="https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn"><img alt="Users" src="https://img.shields.io/chrome-web-store/users/gfdmhpidmomcbghfoejkcpjdklbdcdnn?color=4285F4"></a>
-  <a href="https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn"><img alt="Rating" src="https://img.shields.io/chrome-web-store/rating/gfdmhpidmomcbghfoejkcpjdklbdcdnn?color=4285F4"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-4285F4"></a>
+  <a href="https://github.com/Jubstaaa/font-mapper/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Jubstaaa/font-mapper?color=4285F4"></a>
+</p>
+
+<p>
+  <a href="https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn"><img alt="Add to Chrome — it's free" src="https://img.shields.io/badge/Add%20to%20Chrome-it's%20free-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
 </p>
 
 </div>
@@ -60,7 +64,7 @@ Per-domain preferences are persisted via `chrome.storage.local` — never sent a
 
 [**Install FontMapper from the Chrome Web Store →**](https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn)
 
-> The store listing goes live once Google's review completes.
+One click, no setup. Works on any Chromium-based browser (Chrome, Edge, Brave, Arc).
 
 ### From source
 
@@ -126,3 +130,11 @@ FontMapper does not collect, transmit, or store any data outside of your browser
 ## License
 
 MIT
+
+---
+
+<div align="center">
+
+If FontMapper made your day a little better, [**leave a review on the Chrome Web Store**](https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn) or ⭐ this repo. It really helps.
+
+</div>
