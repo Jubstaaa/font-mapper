@@ -10,9 +10,10 @@ const icons = {
 export default defineManifest({
     manifest_version: 3,
     name: 'FontMapper',
-    version: '0.2.0',
+    version: '0.3.0',
     description: 'Map any website’s fonts to your local fonts — per domain.',
-    permissions: ['activeTab', 'storage', 'fontSettings'],
+    minimum_chrome_version: '103',
+    permissions: ['activeTab', 'storage'],
     host_permissions: ['<all_urls>'],
     icons,
     action: {
@@ -20,6 +21,7 @@ export default defineManifest({
         default_title: 'FontMapper',
         default_icon: icons,
     },
+    options_page: 'options.html',
     content_scripts: [
         {
             matches: ['<all_urls>'],
