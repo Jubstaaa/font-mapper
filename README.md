@@ -4,7 +4,9 @@
 
 # FontMapper
 
-**Map any website's fonts to your local fonts — per domain, instantly.**
+**Replace any website's fonts with the fonts installed on your computer — per domain, instantly.**
+
+<sub>System fonts, downloaded fonts, anything — FontMapper reads them directly via Chrome's Local Font Access API and lets you assign any of them as a replacement on any site.</sub>
 
 <p>
   <a href="https://chromewebstore.google.com/detail/gfdmhpidmomcbghfoejkcpjdklbdcdnn"><img alt="Chrome Web Store" src="https://img.shields.io/chrome-web-store/v/gfdmhpidmomcbghfoejkcpjdklbdcdnn?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4"></a>
@@ -26,7 +28,7 @@
 
 ## What it does
 
-FontMapper is a Chrome extension that lets you replace any website's fonts with your favorite local fonts. Open the popup on any page, see every font the site is using, swap each one for any font installed on your machine, and FontMapper remembers your choices — per domain, applied automatically on every visit.
+FontMapper is a Chrome extension that lets you change website fonts using the fonts already installed on your computer. Open the popup on any page, see every font family the site is using, swap each one for any font on your machine, and FontMapper remembers your choices — per domain, applied automatically on every visit.
 
 Built for people who care about typography, accessibility, or just don't like how a particular site renders its body text.
 
