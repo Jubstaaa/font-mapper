@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Check, RefreshCw, ShieldAlert, Sparkles, X } from 'lucide-react'
+import { Check, Download, RefreshCw, ShieldAlert, Sparkles, Trash2, Upload, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { isLocalFontsApiAvailable, listLocalFonts } from '@/lib/chrome-fonts'
-import { loadCachedLocalFonts, saveCachedLocalFonts } from '@/lib/chrome-storage'
+import {
+    clearAllSettings,
+    exportAllSettings,
+    importAllSettings,
+    loadCachedLocalFonts,
+    saveCachedLocalFonts,
+} from '@/lib/chrome-storage'
 
 import '@/index.css'
 
@@ -14,6 +20,51 @@ function Options() {
     const [status, setStatus] = useState<Status>('checking')
     const [fontCount, setFontCount] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [backupMessage, setBackupMessage] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null)
+    const importInputRef = useRef<HTMLInputElement | null>(null)
+
+    const handleExport = useCallback(async () => {
+        try {
+            const payload = await exportAllSettings()
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            const stamp = new Date().toISOString().slice(0, 10)
+            a.href = url
+            a.download = `fontmapper-mappings-${stamp}.json`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+            const hostCount = Object.keys(payload.mappings).length
+            setBackupMessage({ tone: 'ok', text: `Exported mappings for ${hostCount} site${hostCount === 1 ? '' : 's'}.` })
+        } catch (err) {
+            setBackupMessage({ tone: 'err', text: err instanceof Error ? err.message : 'Export failed' })
+        }
+    }, [])
+
+    const handleImportFile = useCallback(async (file: File) => {
+        try {
+            const text = await file.text()
+            const result = await importAllSettings(text, 'replace')
+            setBackupMessage({
+                tone: 'ok',
+                text: `Imported ${result.mappingCount} mapping${result.mappingCount === 1 ? '' : 's'} across ${result.hostCount} site${result.hostCount === 1 ? '' : 's'}.`,
+            })
+        } catch (err) {
+            setBackupMessage({ tone: 'err', text: err instanceof Error ? err.message : 'Import failed' })
+        }
+    }, [])
+
+    const handleReset = useCallback(async () => {
+        if (!window.confirm('Delete all font mappings on every site? This cannot be undone.')) return
+        try {
+            await clearAllSettings()
+            setBackupMessage({ tone: 'ok', text: 'All mappings cleared.' })
+        } catch (err) {
+            setBackupMessage({ tone: 'err', text: err instanceof Error ? err.message : 'Reset failed' })
+        }
+    }, [])
 
     const handleGrant = useCallback(async () => {
         setStatus('loading')
@@ -141,6 +192,55 @@ function Options() {
                         </div>
                     )}
                 </main>
+
+                <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <div className="mb-4 flex items-center gap-2">
+                        <Download className="size-4 text-muted-foreground" />
+                        <h2 className="text-base font-medium">Backup &amp; restore</h2>
+                    </div>
+                    <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+                        Save your font mappings to a JSON file, move them to another computer, or wipe them clean.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        <Button onClick={handleExport} variant="outline" size="sm">
+                            <Download className="mr-1.5 size-3.5" />
+                            Export mappings
+                        </Button>
+                        <Button onClick={() => importInputRef.current?.click()} variant="outline" size="sm">
+                            <Upload className="mr-1.5 size-3.5" />
+                            Import mappings
+                        </Button>
+                        <Button onClick={handleReset} variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            <Trash2 className="mr-1.5 size-3.5" />
+                            Clear all mappings
+                        </Button>
+                        <input
+                            ref={importInputRef}
+                            type="file"
+                            accept="application/json,.json"
+                            className="hidden"
+                            onChange={async e => {
+                                const file = e.target.files?.[0]
+                                if (file) await handleImportFile(file)
+                                e.target.value = ''
+                            }}
+                        />
+                    </div>
+                    {backupMessage && (
+                        <p
+                            className={
+                                backupMessage.tone === 'ok'
+                                    ? 'mt-3 text-[11px] text-emerald-600 dark:text-emerald-400'
+                                    : 'mt-3 text-[11px] text-destructive'
+                            }
+                        >
+                            {backupMessage.text}
+                        </p>
+                    )}
+                    <p className="mt-3 text-[11px] text-muted-foreground">
+                        Import replaces all current mappings with the file's contents.
+                    </p>
+                </section>
 
                 <footer className="text-center text-[11px] text-muted-foreground">
                     Your font list is stored only in this browser via{' '}

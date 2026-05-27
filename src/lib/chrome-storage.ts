@@ -89,6 +89,58 @@ export async function saveMappingsForHost(hostname: string, mappings: FontMap): 
     await chrome.storage.local.set({ [STORAGE_KEY]: all })
 }
 
+export interface ExportPayload {
+    version: 1
+    exportedAt: string
+    mappings: FontMapStore
+}
+
+export async function exportAllSettings(): Promise<ExportPayload> {
+    const mappings = await loadAllMappings()
+    return {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        mappings,
+    }
+}
+
+export async function importAllSettings(
+    json: string,
+    mode: 'merge' | 'replace' = 'replace',
+): Promise<{ hostCount: number; mappingCount: number }> {
+    const parsed: unknown = JSON.parse(json)
+    if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid JSON: expected an object')
+    }
+    const root = parsed as Record<string, unknown>
+    const raw = 'mappings' in root ? root.mappings : root
+    const normalized = normalizeStore(raw)
+    if (!Object.keys(normalized).length) {
+        throw new Error('No valid mappings found in the file')
+    }
+
+    let next: FontMapStore
+    if (mode === 'merge') {
+        const existing = await loadAllMappings()
+        next = { ...existing }
+        for (const [host, mappings] of Object.entries(normalized)) {
+            next[host] = { ...(next[host] ?? {}), ...mappings }
+        }
+    } else {
+        next = normalized
+    }
+
+    await chrome.storage.local.set({ [STORAGE_KEY]: next })
+
+    const hostCount = Object.keys(next).length
+    const mappingCount = Object.values(next).reduce((sum, m) => sum + Object.keys(m).length, 0)
+    return { hostCount, mappingCount }
+}
+
+export async function clearAllSettings(): Promise<void> {
+    await chrome.storage.local.remove(STORAGE_KEY)
+}
+
 export function onMappingsChanged(callback: (store: FontMapStore) => void): () => void {
     const listener = (
         changes: Record<string, chrome.storage.StorageChange>,
