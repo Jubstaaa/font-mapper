@@ -51,16 +51,13 @@ Built for people who care about typography, accessibility, or just don't like ho
 
 ## How it works
 
-Under the hood, FontMapper uses standard CSS `@font-face` with `local()` substitution:
+FontMapper walks every element on the page, reads its computed `font-family` chain, and applies an inline override on each element whose chain references a mapped family:
 
-```css
-@font-face {
-    font-family: 'Arial';
-    src: local('Product Sans');
-}
+```js
+el.style.setProperty('font-family', '"Product Sans"', 'important')
 ```
 
-This tells the browser: "wherever Arial is requested, render it with Product Sans instead." Native, fast, layout-preserving.
+This intercepts named families (Arial, Sohne), generic keywords (`sans-serif`, `serif`, `monospace`), and system aliases (`-apple-system`, `system-ui`) — anywhere a page's font stack falls back, your mapping wins. A `MutationObserver` keeps it up to date as the page injects new content.
 
 Per-domain preferences are persisted via `chrome.storage.local` — never sent anywhere.
 
@@ -111,7 +108,7 @@ bun run typecheck  # tsc -b --noEmit
 ```
 src/
 ├── content/
-│   └── content.ts            Font scanning, @font-face injection, hover highlighting
+│   └── content.ts            Font scanning, inline override walker, hover highlighting
 ├── lib/
 │   ├── chrome-storage.ts     Per-domain mapping persistence
 │   ├── chrome-fonts.ts       Local font enumeration (chrome.fontSettings)

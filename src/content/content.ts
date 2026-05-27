@@ -18,20 +18,52 @@ import {
     type PortMessage,
 } from '@/lib/chrome-messaging'
 
-const STYLE_ID = '__font_mapper_style__'
 const HIGHLIGHT_STYLE_ID = '__font_mapper_highlight_style__'
 const HIGHLIGHT_CLASS = '__font_mapper_highlight__'
+const MAPPED_ATTR = 'data-fm-mapped'
 
-const fontElementCache = new Map<string, WeakRef<Element>[]>()
-const activeFontFaces = new Map<string, FontFace[]>()
-let cachedFonts: CachedLocalFont[] = []
+const GENERIC_KEYWORDS = new Set([
+    'sans-serif',
+    'serif',
+    'monospace',
+    'cursive',
+    'fantasy',
+    'math',
+    'system-ui',
+    'ui-sans-serif',
+    'ui-serif',
+    'ui-monospace',
+    'ui-rounded',
+    'emoji',
+    'fangsong',
+    '-apple-system',
+    'blinkmacsystemfont',
+])
 
-function escapeSingleQuoted(name: string): string {
-    return name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+const SKIP_KEYWORDS = new Set(['inherit', 'initial', 'unset', 'revert', 'revert-layer'])
+
+interface OverrideState {
+    sourceKey: string
+    targetSignature: string
+    inlineFontFamily: string
+    inlineFontFamilyPriority: string
+    inlineFontSize: string
+    inlineFontSizePriority: string
+    originalComputedSizePx: number
+    originalChain: string[]
 }
 
-function escapeDoubleQuoted(name: string): string {
-    return name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+const overrides = new WeakMap<HTMLElement, OverrideState>()
+const fontElementCache = new Map<string, WeakRef<Element>[]>()
+
+let cachedFonts: CachedLocalFont[] = []
+let lookup = new Map<string, FontMapping>()
+
+function rebuildLookup(mappings: FontMap): void {
+    lookup = new Map()
+    for (const [k, v] of Object.entries(mappings)) {
+        if (v?.name) lookup.set(k.toLowerCase(), v)
+    }
 }
 
 function resolveLocalName(mapping: FontMapping): string {
@@ -47,105 +79,136 @@ function resolveLocalName(mapping: FontMapping): string {
     return mapping.id || mapping.name
 }
 
-function sizeAdjustValue(scale: number | undefined): string | null {
-    if (typeof scale !== 'number' || !Number.isFinite(scale) || scale <= 0 || scale === 1) return null
-    return `${(scale * 100).toFixed(2)}%`
-}
-
-function buildCss(mappings: FontMap): string {
-    const rules: string[] = []
-    for (const [source, mapping] of Object.entries(mappings)) {
-        if (!mapping?.name) continue
-        const s = escapeSingleQuoted(source)
-        const t = escapeSingleQuoted(resolveLocalName(mapping))
-        const sizeAdjust = sizeAdjustValue(mapping.scale)
-        const sizeAdjustDecl = sizeAdjust ? ` size-adjust: ${sizeAdjust};` : ''
-        rules.push(
-            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: normal; font-weight: 100 1000; font-display: swap;${sizeAdjustDecl} }`,
-            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: italic; font-weight: 100 1000; font-display: swap;${sizeAdjustDecl} }`,
-        )
-    }
-    return rules.join('\n')
-}
-
-function clearFontFaces(): void {
-    for (const [, faces] of activeFontFaces) {
-        for (const face of faces) {
-            try {
-                document.fonts.delete(face)
-            } catch {}
-        }
-    }
-    activeFontFaces.clear()
-}
-
-async function applyFontFaces(mappings: FontMap): Promise<void> {
-    clearFontFaces()
-    for (const [source, mapping] of Object.entries(mappings)) {
-        if (!mapping?.name) continue
-        const src = `local("${escapeDoubleQuoted(resolveLocalName(mapping))}")`
-        const sizeAdjust = sizeAdjustValue(mapping.scale)
-        const descriptors: FontFaceDescriptors = {
-            weight: '100 1000',
-            display: 'swap',
-        }
-        if (sizeAdjust) {
-            (descriptors as FontFaceDescriptors & { sizeAdjust?: string }).sizeAdjust = sizeAdjust
-        }
-        const faces: FontFace[] = []
-        for (const style of ['normal', 'italic'] as const) {
-            const ff = new FontFace(source, src, { ...descriptors, style })
-            try {
-                const loaded = await ff.load()
-                document.fonts.add(loaded)
-                faces.push(loaded)
-            } catch {}
-        }
-        if (faces.length) activeFontFaces.set(source, faces)
-    }
-}
-
-function getStyleTarget(): Element {
-    return document.head || document.documentElement || document.body
-}
-
-function ensureLastChild(): void {
-    const el = document.getElementById(STYLE_ID)
-    if (!el) return
-    const target = getStyleTarget()
-    if (!target) return
-    if (target.lastElementChild !== el) {
-        target.appendChild(el)
-    }
-}
-
-function applyStyle(css: string): void {
-    let el = document.getElementById(STYLE_ID) as HTMLStyleElement | null
-    if (!el) {
-        el = document.createElement('style')
-        el.id = STYLE_ID
-    }
-    el.textContent = css
-    const target = getStyleTarget()
-    if (target) target.appendChild(el)
-}
-
-const styleObserver = new MutationObserver(records => {
-    for (const record of records) {
-        for (const node of record.addedNodes) {
-            if (!(node instanceof HTMLElement)) continue
-            if (node.id === STYLE_ID) continue
-            if (node.tagName === 'STYLE' || node.tagName === 'LINK') {
-                ensureLastChild()
-                return
+function parseFontFamilyChain(value: string): string[] {
+    const parts: string[] = []
+    let buf = ''
+    let quote: string | null = null
+    for (let i = 0; i < value.length; i++) {
+        const ch = value[i]
+        if (quote) {
+            if (ch === '\\' && i + 1 < value.length) {
+                buf += value[i + 1]
+                i++
+            } else if (ch === quote) {
+                quote = null
+            } else {
+                buf += ch
             }
+        } else if (ch === '"' || ch === "'") {
+            quote = ch
+        } else if (ch === ',') {
+            const t = buf.trim()
+            if (t) parts.push(t)
+            buf = ''
+        } else {
+            buf += ch
         }
     }
-})
+    const tail = buf.trim()
+    if (tail) parts.push(tail)
+    return parts
+}
 
-function startObservers(): void {
-    const root = document.documentElement
-    if (root) styleObserver.observe(root, { childList: true, subtree: true })
+function quoteFamily(name: string): string {
+    if (/^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name) && !GENERIC_KEYWORDS.has(name.toLowerCase())) {
+        return name
+    }
+    return `"${name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+}
+
+function matchChain(chain: string[]): { sourceKey: string; mapping: FontMapping } | null {
+    for (const font of chain) {
+        const key = font.toLowerCase()
+        if (SKIP_KEYWORDS.has(key)) continue
+        const mapping = lookup.get(key)
+        if (mapping) return { sourceKey: key, mapping }
+    }
+    return null
+}
+
+function targetSignatureFor(mapping: FontMapping): string {
+    return `${resolveLocalName(mapping)}|${mapping.scale ?? 1}|${mapping.bold ? 1 : 0}|${mapping.italic ? 1 : 0}`
+}
+
+function restoreElement(el: HTMLElement): void {
+    const state = overrides.get(el)
+    if (!state) return
+    if (state.inlineFontFamily) {
+        el.style.setProperty('font-family', state.inlineFontFamily, state.inlineFontFamilyPriority)
+    } else {
+        el.style.removeProperty('font-family')
+    }
+    if (state.inlineFontSize) {
+        el.style.setProperty('font-size', state.inlineFontSize, state.inlineFontSizePriority)
+    } else {
+        el.style.removeProperty('font-size')
+    }
+    el.removeAttribute(MAPPED_ATTR)
+    overrides.delete(el)
+}
+
+function applyToElement(el: HTMLElement): void {
+    const existing = overrides.get(el)
+
+    if (existing) {
+        const stillMapped = lookup.get(existing.sourceKey)
+        if (stillMapped && targetSignatureFor(stillMapped) === existing.targetSignature) {
+            return
+        }
+        restoreElement(el)
+    }
+
+    const cs = window.getComputedStyle(el)
+    const family = cs.fontFamily
+    if (!family) return
+
+    const chain = parseFontFamilyChain(family)
+    const match = matchChain(chain)
+    if (!match) return
+
+    const parsedSize = parseFloat(cs.fontSize)
+    const originalSizePx = Number.isFinite(parsedSize) ? parsedSize : 16
+
+    const inlineFontFamily = el.style.getPropertyValue('font-family')
+    const inlineFontFamilyPriority = el.style.getPropertyPriority('font-family')
+    const inlineFontSize = el.style.getPropertyValue('font-size')
+    const inlineFontSizePriority = el.style.getPropertyPriority('font-size')
+
+    const targetFamily = quoteFamily(resolveLocalName(match.mapping))
+    el.style.setProperty('font-family', targetFamily, 'important')
+
+    const scale = match.mapping.scale
+    if (typeof scale === 'number' && Number.isFinite(scale) && scale > 0 && scale !== 1) {
+        el.style.setProperty('font-size', `${(originalSizePx * scale).toFixed(3)}px`, 'important')
+    }
+
+    el.setAttribute(MAPPED_ATTR, match.sourceKey)
+    overrides.set(el, {
+        sourceKey: match.sourceKey,
+        targetSignature: targetSignatureFor(match.mapping),
+        inlineFontFamily,
+        inlineFontFamilyPriority,
+        inlineFontSize,
+        inlineFontSizePriority,
+        originalComputedSizePx: originalSizePx,
+        originalChain: chain,
+    })
+}
+
+function walkAll(): void {
+    if (!document.body) return
+    if (lookup.size === 0) {
+        clearAllOverrides()
+        return
+    }
+    const nodes = document.body.querySelectorAll<HTMLElement>('*')
+    applyToElement(document.body)
+    for (const node of nodes) applyToElement(node)
+}
+
+function clearAllOverrides(): void {
+    const els = document.querySelectorAll<HTMLElement>(`[${MAPPED_ATTR}]`)
+    for (const el of els) restoreElement(el)
 }
 
 function ensureHighlightStyle(): void {
@@ -161,23 +224,63 @@ function ensureHighlightStyle(): void {
     ;(document.documentElement || document).appendChild(el)
 }
 
+function pickPickerName(value: string): string | null {
+    const trimmed = value.trim().replace(/^["']|["']$/g, '')
+    if (!trimmed) return null
+    if (SKIP_KEYWORDS.has(trimmed.toLowerCase())) return null
+    return trimmed
+}
+
+function indexCache(name: string, node: Element): void {
+    let list = fontElementCache.get(name)
+    if (!list) {
+        list = []
+        fontElementCache.set(name, list)
+    }
+    list.push(new WeakRef(node))
+}
+
+function chainForElement(node: Element): string[] {
+    const state = node instanceof HTMLElement ? overrides.get(node) : undefined
+    if (state) return state.originalChain
+    const family = window.getComputedStyle(node).fontFamily
+    if (!family) return []
+    return parseFontFamilyChain(family)
+}
+
 function collectUsedFonts(): string[] {
     fontElementCache.clear()
     const found = new Set<string>()
-    const nodes = document.querySelectorAll('body, body *')
-    for (const node of nodes) {
-        if (!(node instanceof Element)) continue
-        const family = window.getComputedStyle(node).fontFamily
-        if (!family) continue
-        const first = family.split(',')[0]?.trim().replace(/^["']|["']$/g, '')
-        if (!first || first.startsWith('-') || first.toLowerCase() === 'inherit') continue
-        found.add(first)
-        let list = fontElementCache.get(first)
-        if (!list) {
-            list = []
-            fontElementCache.set(first, list)
+    if (!document.body) return []
+    const nodes = document.body.querySelectorAll('*')
+    const allNodes: Element[] = [document.body, ...Array.from(nodes)]
+    for (const node of allNodes) {
+        const chain = chainForElement(node)
+        if (!chain.length) continue
+
+        let namedAdded = false
+        for (const entry of chain) {
+            const cleaned = pickPickerName(entry)
+            if (!cleaned) continue
+            const k = cleaned.toLowerCase()
+            if (GENERIC_KEYWORDS.has(k)) continue
+            found.add(cleaned)
+            indexCache(cleaned, node)
+            namedAdded = true
+            break
         }
-        list.push(new WeakRef(node))
+
+        if (namedAdded) continue
+
+        for (let i = chain.length - 1; i >= 0; i--) {
+            const cleaned = pickPickerName(chain[i])
+            if (!cleaned) continue
+            const k = cleaned.toLowerCase()
+            if (!GENERIC_KEYWORDS.has(k)) continue
+            found.add(cleaned)
+            indexCache(cleaned, node)
+            break
+        }
     }
     return Array.from(found).sort((a, b) => a.localeCompare(b))
 }
@@ -198,8 +301,8 @@ function clearHighlight(): void {
 }
 
 function apply(mappings: FontMap): void {
-    applyStyle(buildCss(mappings))
-    void applyFontFaces(mappings)
+    rebuildLookup(mappings)
+    walkAll()
 }
 
 async function loadFontCache(): Promise<void> {
@@ -210,19 +313,102 @@ async function loadFontCache(): Promise<void> {
     }
 }
 
+let scheduledWalk = false
+function scheduleWalk(): void {
+    if (scheduledWalk) return
+    scheduledWalk = true
+    const run = () => {
+        scheduledWalk = false
+        walkAll()
+    }
+    const ric = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback
+    if (typeof ric === 'function') {
+        ric(run, { timeout: 200 })
+    } else {
+        setTimeout(run, 0)
+    }
+}
+
+const pendingNew = new Set<HTMLElement>()
+let pendingFlushScheduled = false
+
+function flushPending(): void {
+    pendingFlushScheduled = false
+    if (lookup.size === 0) {
+        pendingNew.clear()
+        return
+    }
+    for (const el of pendingNew) {
+        if (!el.isConnected) continue
+        applyToElement(el)
+        const descendants = el.querySelectorAll<HTMLElement>('*')
+        for (const child of descendants) applyToElement(child)
+    }
+    pendingNew.clear()
+}
+
+function schedulePendingFlush(): void {
+    if (pendingFlushScheduled) return
+    pendingFlushScheduled = true
+    const ric = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback
+    if (typeof ric === 'function') {
+        ric(flushPending, { timeout: 200 })
+    } else {
+        setTimeout(flushPending, 0)
+    }
+}
+
+const domObserver = new MutationObserver(records => {
+    if (lookup.size === 0) return
+    for (const record of records) {
+        for (const node of record.addedNodes) {
+            if (node instanceof HTMLElement) {
+                pendingNew.add(node)
+            }
+        }
+    }
+    if (pendingNew.size > 0) schedulePendingFlush()
+})
+
+function startObservers(): void {
+    const root = document.documentElement
+    if (root) domObserver.observe(root, { childList: true, subtree: true })
+}
+
+let resizeTimer: ReturnType<typeof setTimeout> | null = null
+function onResize(): void {
+    if (resizeTimer) clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => {
+        resizeTimer = null
+        if (lookup.size === 0) return
+        clearAllOverrides()
+        walkAll()
+    }, 200)
+}
+
 async function init(): Promise<void> {
     try {
         await loadFontCache()
         const mappings = await loadMappingsForHost(location.hostname)
-        apply(mappings)
+        rebuildLookup(mappings)
+        if (document.body) {
+            walkAll()
+        } else {
+            scheduleWalk()
+        }
     } catch {}
 }
 
 startObservers()
 void init()
 
-document.addEventListener('DOMContentLoaded', ensureLastChild)
-window.addEventListener('load', ensureLastChild)
+document.addEventListener('DOMContentLoaded', () => {
+    if (lookup.size > 0) walkAll()
+})
+window.addEventListener('load', () => {
+    if (lookup.size > 0) walkAll()
+})
+window.addEventListener('resize', onResize, { passive: true })
 
 onMappingsChanged(store => {
     apply(store[location.hostname] || {})
