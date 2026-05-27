@@ -280,15 +280,33 @@ function indexCache(name: string, node: Element): void {
     list.push(new WeakRef(node))
 }
 
+const chainCache = new Map<Element, string[]>()
+
 function chainForElement(node: Element): string[] {
+    const cached = chainCache.get(node)
+    if (cached) return cached
+    const result = computeChainForElement(node)
+    chainCache.set(node, result)
+    return result
+}
+
+function computeChainForElement(node: Element): string[] {
     const state = node instanceof HTMLElement ? overrides.get(node) : undefined
     if (state) return state.originalChain
     const family = window.getComputedStyle(node).fontFamily
     if (!family) return []
+    const parent = node.parentElement
+    if (parent) {
+        const parentFamily = window.getComputedStyle(parent).fontFamily
+        if (parentFamily === family) {
+            return chainForElement(parent)
+        }
+    }
     return parseFontFamilyChain(family)
 }
 
 function collectUsedFonts(): string[] {
+    chainCache.clear()
     fontElementCache.clear()
     const found = new Set<string>()
     if (!document.body) return []
