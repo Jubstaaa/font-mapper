@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Bold, Italic, RotateCcw } from 'lucide-react'
 
 import { Slider } from '@/components/ui/slider'
@@ -26,9 +27,25 @@ export function FontMappingRow({
     onHover,
 }: FontMappingRowProps) {
     const mapped = mapping?.name ?? null
-    const scale = mapping?.scale ?? SCALE_DEFAULT
-    const scalePct = Math.round(scale * 100)
-    const scaleAtDefault = Math.abs(scale - SCALE_DEFAULT) < 0.001
+    const persistedScale = mapping?.scale ?? SCALE_DEFAULT
+    const [draftScale, setDraftScale] = useState(persistedScale)
+    const commitTimerRef = useRef<number | null>(null)
+
+    useEffect(() => {
+        setDraftScale(persistedScale)
+    }, [persistedScale])
+
+    useEffect(() => {
+        return () => {
+            if (commitTimerRef.current != null) {
+                window.clearTimeout(commitTimerRef.current)
+                commitTimerRef.current = null
+            }
+        }
+    }, [])
+
+    const scalePct = Math.round(draftScale * 100)
+    const scaleAtDefault = Math.abs(draftScale - SCALE_DEFAULT) < 0.001
 
     const boldActive = mapping?.bold === true
     const italicActive = mapping?.italic === true
@@ -71,13 +88,28 @@ export function FontMappingRow({
                             Scale
                         </span>
                         <Slider
-                            value={[scale]}
+                            value={[draftScale]}
                             min={SCALE_MIN}
                             max={SCALE_MAX}
                             step={SCALE_STEP}
                             onValueChange={values => {
                                 const v = values[0]
-                                if (typeof v === 'number') onScaleChange(v)
+                                if (typeof v !== 'number') return
+                                setDraftScale(v)
+                                if (commitTimerRef.current != null) window.clearTimeout(commitTimerRef.current)
+                                commitTimerRef.current = window.setTimeout(() => {
+                                    commitTimerRef.current = null
+                                    onScaleChange(v)
+                                }, 180)
+                            }}
+                            onValueCommit={values => {
+                                const v = values[0]
+                                if (typeof v !== 'number') return
+                                if (commitTimerRef.current != null) {
+                                    window.clearTimeout(commitTimerRef.current)
+                                    commitTimerRef.current = null
+                                }
+                                onScaleChange(v)
                             }}
                             className="flex-1"
                         />
@@ -88,7 +120,10 @@ export function FontMappingRow({
                             type="button"
                             aria-label="Reset scale"
                             disabled={scaleAtDefault}
-                            onClick={() => onScaleChange(SCALE_DEFAULT)}
+                            onClick={() => {
+                                setDraftScale(SCALE_DEFAULT)
+                                onScaleChange(SCALE_DEFAULT)
+                            }}
                             className={cn(
                                 'flex size-5 items-center justify-center rounded-sm text-muted-foreground/70 transition-opacity',
                                 'hover:bg-accent hover:text-foreground',
