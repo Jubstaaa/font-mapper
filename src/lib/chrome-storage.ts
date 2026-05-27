@@ -111,9 +111,41 @@ function normalizeStore(raw: unknown): FontMapStore {
     return out
 }
 
+async function readRawMappings(): Promise<unknown> {
+    const sync = await chrome.storage.sync.get(STORAGE_KEY)
+    if (sync[STORAGE_KEY] !== undefined) return sync[STORAGE_KEY]
+    const local = await chrome.storage.local.get(STORAGE_KEY)
+    return local[STORAGE_KEY]
+}
+
+export async function migrateMappingsToSync(): Promise<void> {
+    const local = (await chrome.storage.local.get(STORAGE_KEY))[STORAGE_KEY]
+    if (!local || typeof local !== 'object') return
+    const sync = (await chrome.storage.sync.get(STORAGE_KEY))[STORAGE_KEY]
+    const merged: FontMapStore = normalizeStore({
+        ...(local as Record<string, unknown>),
+        ...((sync as Record<string, unknown>) ?? {}),
+    })
+    try {
+        await chrome.storage.sync.set({ [STORAGE_KEY]: merged })
+        await chrome.storage.local.remove(STORAGE_KEY)
+    } catch (err) {
+        console.warn('FontMapper: sync migration failed, keeping local copy', err)
+    }
+}
+
+async function writeRawMappings(store: FontMapStore): Promise<void> {
+    try {
+        await chrome.storage.sync.set({ [STORAGE_KEY]: store })
+        await chrome.storage.local.remove(STORAGE_KEY).catch(() => {})
+    } catch (err) {
+        console.warn('FontMapper: sync write failed, falling back to local', err)
+        await chrome.storage.local.set({ [STORAGE_KEY]: store })
+    }
+}
+
 export async function loadAllMappings(): Promise<FontMapStore> {
-    const result = await chrome.storage.local.get(STORAGE_KEY)
-    return normalizeStore(result[STORAGE_KEY])
+    return normalizeStore(await readRawMappings())
 }
 
 export async function loadMappingsForHost(hostname: string): Promise<FontMap> {
@@ -128,7 +160,7 @@ export async function saveMappingsForHost(hostname: string, mappings: FontMap): 
     } else {
         all[hostname] = mappings
     }
-    await chrome.storage.local.set({ [STORAGE_KEY]: all })
+    await writeRawMappings(all)
 }
 
 export interface ExportPayload {
@@ -172,7 +204,7 @@ export async function importAllSettings(
         next = normalized
     }
 
-    await chrome.storage.local.set({ [STORAGE_KEY]: next })
+    await writeRawMappings(next)
 
     const hostCount = Object.keys(next).length
     const mappingCount = Object.values(next).reduce((sum, m) => sum + Object.keys(m).length, 0)
@@ -180,16 +212,25 @@ export async function importAllSettings(
 }
 
 export async function clearAllSettings(): Promise<void> {
-    await chrome.storage.local.remove(STORAGE_KEY)
+    await Promise.allSettled([
+        chrome.storage.sync.remove(STORAGE_KEY),
+        chrome.storage.local.remove(STORAGE_KEY),
+    ])
 }
 
 export function onMappingsChanged(callback: (store: FontMapStore) => void): () => void {
+    let pending = false
     const listener = (
         changes: Record<string, chrome.storage.StorageChange>,
         area: chrome.storage.AreaName,
     ) => {
-        if (area !== 'local' || !changes[STORAGE_KEY]) return
-        callback(normalizeStore(changes[STORAGE_KEY].newValue))
+        if ((area !== 'sync' && area !== 'local') || !changes[STORAGE_KEY]) return
+        if (pending) return
+        pending = true
+        queueMicrotask(() => {
+            pending = false
+            loadAllMappings().then(callback).catch(() => {})
+        })
     }
     chrome.storage.onChanged.addListener(listener)
     return () => chrome.storage.onChanged.removeListener(listener)

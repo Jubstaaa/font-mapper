@@ -88,6 +88,17 @@ function rebuildLookup(mappings: FontMap): void {
     }
 }
 
+function isMappingApplicable(mapping: FontMapping): boolean {
+    if (!cachedFonts.length) return false
+    const family = mapping.name
+    const psName = mapping.id
+    return cachedFonts.some(f =>
+        f.family === family
+        || (psName ? f.postscriptName === psName : false)
+        || f.fullName === family,
+    )
+}
+
 function resolveLocalName(mapping: FontMapping): string {
     if (cachedFonts.length && (mapping.bold || mapping.italic)) {
         const variants = getFamilyVariants(mapping.name, cachedFonts)
@@ -192,6 +203,7 @@ function applyToElement(el: HTMLElement): void {
     const chain = parseFontFamilyChain(family)
     const match = matchChain(chain)
     if (!match) return
+    if (!isMappingApplicable(match.mapping)) return
 
     const parsedSize = parseFloat(cs.fontSize)
     const originalSizePx = Number.isFinite(parsedSize) ? parsedSize : 16
