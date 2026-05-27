@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Bold, Italic, RotateCcw } from 'lucide-react'
+import { ArrowRight, Bold, ChevronDown, ChevronUp, Italic, RotateCcw } from 'lucide-react'
 
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
@@ -12,8 +12,190 @@ const SCALE_MAX = 2
 const SCALE_STEP = 0.05
 const SCALE_DEFAULT = 1
 
+const LINE_HEIGHT_MIN = 0.8
+const LINE_HEIGHT_MAX = 3
+const LINE_HEIGHT_STEP = 0.05
+const LINE_HEIGHT_DEFAULT = 1.5
+
+const LETTER_SP_MIN = -0.1
+const LETTER_SP_MAX = 0.5
+const LETTER_SP_STEP = 0.01
+const LETTER_SP_DEFAULT = 0
+
+const WORD_SP_MIN = -0.2
+const WORD_SP_MAX = 1
+const WORD_SP_STEP = 0.05
+const WORD_SP_DEFAULT = 0
+
+const COLOR_DEFAULT = '#000000'
+const COMMIT_DEBOUNCE_MS = 180
+
 function escapeFontName(name: string): string {
     return name.replace(/'/g, "\\'")
+}
+
+interface AdvancedSliderProps {
+    label: string
+    min: number
+    max: number
+    step: number
+    defaultValue: number
+    persistedValue: number | undefined
+    formatValue: (v: number) => string
+    onCommit: (v: number | undefined) => void
+}
+
+function AdvancedSlider({
+    label,
+    min,
+    max,
+    step,
+    defaultValue,
+    persistedValue,
+    formatValue,
+    onCommit,
+}: AdvancedSliderProps) {
+    const effective = persistedValue ?? defaultValue
+    const [draft, setDraft] = useState(effective)
+    const timerRef = useRef<number | null>(null)
+
+    useEffect(() => {
+        setDraft(effective)
+    }, [effective])
+
+    useEffect(() => () => {
+        if (timerRef.current != null) window.clearTimeout(timerRef.current)
+    }, [])
+
+    const cancelTimer = () => {
+        if (timerRef.current != null) {
+            window.clearTimeout(timerRef.current)
+            timerRef.current = null
+        }
+    }
+
+    const isOverridden = persistedValue !== undefined
+
+    return (
+        <div className="flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5">
+            <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {label}
+            </span>
+            <Slider
+                value={[draft]}
+                min={min}
+                max={max}
+                step={step}
+                onValueChange={values => {
+                    const v = values[0]
+                    if (typeof v !== 'number') return
+                    setDraft(v)
+                    cancelTimer()
+                    timerRef.current = window.setTimeout(() => {
+                        timerRef.current = null
+                        onCommit(v)
+                    }, COMMIT_DEBOUNCE_MS)
+                }}
+                onValueCommit={values => {
+                    const v = values[0]
+                    if (typeof v !== 'number') return
+                    cancelTimer()
+                    onCommit(v)
+                }}
+                className="flex-1"
+            />
+            <span className="w-14 shrink-0 text-right text-[11px] font-medium tabular-nums text-foreground">
+                {formatValue(draft)}
+            </span>
+            <button
+                type="button"
+                aria-label={`Reset ${label.toLowerCase()}`}
+                disabled={!isOverridden}
+                onClick={() => {
+                    setDraft(defaultValue)
+                    cancelTimer()
+                    onCommit(undefined)
+                }}
+                className={cn(
+                    'flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground/70 transition-opacity',
+                    'hover:bg-accent hover:text-foreground',
+                    !isOverridden && 'pointer-events-none opacity-0',
+                )}
+            >
+                <RotateCcw className="size-3" />
+            </button>
+        </div>
+    )
+}
+
+interface AdvancedColorProps {
+    persistedValue: string | undefined
+    onCommit: (v: string | undefined) => void
+}
+
+function AdvancedColor({ persistedValue, onCommit }: AdvancedColorProps) {
+    const [draft, setDraft] = useState(persistedValue ?? COLOR_DEFAULT)
+    const timerRef = useRef<number | null>(null)
+
+    useEffect(() => {
+        setDraft(persistedValue ?? COLOR_DEFAULT)
+    }, [persistedValue])
+
+    useEffect(() => () => {
+        if (timerRef.current != null) window.clearTimeout(timerRef.current)
+    }, [])
+
+    const cancelTimer = () => {
+        if (timerRef.current != null) {
+            window.clearTimeout(timerRef.current)
+            timerRef.current = null
+        }
+    }
+
+    const isOverridden = persistedValue !== undefined
+
+    return (
+        <div className="flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5">
+            <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Color
+            </span>
+            <input
+                type="color"
+                value={draft}
+                onChange={e => {
+                    const v = e.target.value
+                    setDraft(v)
+                    cancelTimer()
+                    timerRef.current = window.setTimeout(() => {
+                        timerRef.current = null
+                        onCommit(v)
+                    }, COMMIT_DEBOUNCE_MS)
+                }}
+                title="May affect syntax highlighting or semantic colors on the page"
+                className="h-6 w-8 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0"
+            />
+            <span className="flex-1 text-[11px] font-mono uppercase tabular-nums text-muted-foreground">
+                {isOverridden ? draft : '—'}
+            </span>
+            <button
+                type="button"
+                aria-label="Reset color"
+                disabled={!isOverridden}
+                onClick={() => {
+                    setDraft(COLOR_DEFAULT)
+                    cancelTimer()
+                    onCommit(undefined)
+                }}
+                className={cn(
+                    'flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground/70 transition-opacity',
+                    'hover:bg-accent hover:text-foreground',
+                    !isOverridden && 'pointer-events-none opacity-0',
+                )}
+            >
+                <RotateCcw className="size-3" />
+            </button>
+        </div>
+    )
 }
 
 export function FontMappingRow({
@@ -24,23 +206,26 @@ export function FontMappingRow({
     onChange,
     onScaleChange,
     onStyleChange,
+    onLineHeightChange,
+    onLetterSpacingChange,
+    onWordSpacingChange,
+    onColorChange,
     onHover,
 }: FontMappingRowProps) {
     const mapped = mapping?.name ?? null
     const persistedScale = mapping?.scale ?? SCALE_DEFAULT
     const [draftScale, setDraftScale] = useState(persistedScale)
-    const commitTimerRef = useRef<number | null>(null)
+    const scaleTimerRef = useRef<number | null>(null)
+    const [advancedOpen, setAdvancedOpen] = useState(false)
 
     useEffect(() => {
         setDraftScale(persistedScale)
     }, [persistedScale])
 
-    useEffect(() => {
-        return () => {
-            if (commitTimerRef.current != null) {
-                window.clearTimeout(commitTimerRef.current)
-                commitTimerRef.current = null
-            }
+    useEffect(() => () => {
+        if (scaleTimerRef.current != null) {
+            window.clearTimeout(scaleTimerRef.current)
+            scaleTimerRef.current = null
         }
     }, [])
 
@@ -51,6 +236,12 @@ export function FontMappingRow({
     const italicActive = mapping?.italic === true
     const boldAvailable = Boolean(variants?.bold) || Boolean(variants?.boldItalic)
     const italicAvailable = Boolean(variants?.italic) || Boolean(variants?.boldItalic)
+
+    const advancedActive =
+        mapping?.lineHeight !== undefined
+        || mapping?.letterSpacing !== undefined
+        || mapping?.wordSpacing !== undefined
+        || mapping?.color !== undefined
 
     return (
         <li
@@ -84,7 +275,7 @@ export function FontMappingRow({
             {mapped && (
                 <>
                     <div className="flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5">
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             Scale
                         </span>
                         <Slider
@@ -96,24 +287,24 @@ export function FontMappingRow({
                                 const v = values[0]
                                 if (typeof v !== 'number') return
                                 setDraftScale(v)
-                                if (commitTimerRef.current != null) window.clearTimeout(commitTimerRef.current)
-                                commitTimerRef.current = window.setTimeout(() => {
-                                    commitTimerRef.current = null
+                                if (scaleTimerRef.current != null) window.clearTimeout(scaleTimerRef.current)
+                                scaleTimerRef.current = window.setTimeout(() => {
+                                    scaleTimerRef.current = null
                                     onScaleChange(v)
-                                }, 180)
+                                }, COMMIT_DEBOUNCE_MS)
                             }}
                             onValueCommit={values => {
                                 const v = values[0]
                                 if (typeof v !== 'number') return
-                                if (commitTimerRef.current != null) {
-                                    window.clearTimeout(commitTimerRef.current)
-                                    commitTimerRef.current = null
+                                if (scaleTimerRef.current != null) {
+                                    window.clearTimeout(scaleTimerRef.current)
+                                    scaleTimerRef.current = null
                                 }
                                 onScaleChange(v)
                             }}
                             className="flex-1"
                         />
-                        <span className="w-10 text-right text-[11px] font-medium tabular-nums text-foreground">
+                        <span className="w-14 shrink-0 text-right text-[11px] font-medium tabular-nums text-foreground">
                             {scalePct}%
                         </span>
                         <button
@@ -122,10 +313,14 @@ export function FontMappingRow({
                             disabled={scaleAtDefault}
                             onClick={() => {
                                 setDraftScale(SCALE_DEFAULT)
+                                if (scaleTimerRef.current != null) {
+                                    window.clearTimeout(scaleTimerRef.current)
+                                    scaleTimerRef.current = null
+                                }
                                 onScaleChange(SCALE_DEFAULT)
                             }}
                             className={cn(
-                                'flex size-5 items-center justify-center rounded-sm text-muted-foreground/70 transition-opacity',
+                                'flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground/70 transition-opacity',
                                 'hover:bg-accent hover:text-foreground',
                                 scaleAtDefault && 'pointer-events-none opacity-0',
                             )}
@@ -134,7 +329,7 @@ export function FontMappingRow({
                         </button>
                     </div>
                     <div className="flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5">
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             Style
                         </span>
                         <div className="flex items-center gap-1">
@@ -174,6 +369,58 @@ export function FontMappingRow({
                             </button>
                         </div>
                     </div>
+                    <button
+                        type="button"
+                        aria-expanded={advancedOpen}
+                        onClick={() => setAdvancedOpen(o => !o)}
+                        className="flex items-center justify-between gap-2 border-t border-primary/15 px-2.5 py-1.5 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+                    >
+                        <span className="flex items-center gap-1.5">
+                            Advanced
+                            {advancedActive && !advancedOpen && (
+                                <span className="size-1.5 rounded-full bg-primary" aria-label="has advanced overrides" />
+                            )}
+                        </span>
+                        {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                    </button>
+                    {advancedOpen && (
+                        <>
+                            <AdvancedSlider
+                                label="Line"
+                                min={LINE_HEIGHT_MIN}
+                                max={LINE_HEIGHT_MAX}
+                                step={LINE_HEIGHT_STEP}
+                                defaultValue={LINE_HEIGHT_DEFAULT}
+                                persistedValue={mapping?.lineHeight}
+                                formatValue={v => v.toFixed(2)}
+                                onCommit={onLineHeightChange}
+                            />
+                            <AdvancedSlider
+                                label="Letter"
+                                min={LETTER_SP_MIN}
+                                max={LETTER_SP_MAX}
+                                step={LETTER_SP_STEP}
+                                defaultValue={LETTER_SP_DEFAULT}
+                                persistedValue={mapping?.letterSpacing}
+                                formatValue={v => `${v.toFixed(2)}em`}
+                                onCommit={onLetterSpacingChange}
+                            />
+                            <AdvancedSlider
+                                label="Word"
+                                min={WORD_SP_MIN}
+                                max={WORD_SP_MAX}
+                                step={WORD_SP_STEP}
+                                defaultValue={WORD_SP_DEFAULT}
+                                persistedValue={mapping?.wordSpacing}
+                                formatValue={v => `${v.toFixed(2)}em`}
+                                onCommit={onWordSpacingChange}
+                            />
+                            <AdvancedColor
+                                persistedValue={mapping?.color}
+                                onCommit={onColorChange}
+                            />
+                        </>
+                    )}
                 </>
             )}
         </li>

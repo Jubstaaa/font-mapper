@@ -36,6 +36,7 @@ Built for people who care about typography, accessibility, or just don't like ho
 
 - **Per-domain mapping** — different replacements for different sites, applied automatically
 - **Searchable font picker** — type to filter through every font on your machine; each option previews in its own typeface
+- **Per-mapping typography** — tweak scale, bold/italic, line-height, letter-spacing, word-spacing, and text color for each remapped family
 - **Hover to identify** — hover any detected font in the popup and every element using it gets highlighted on the page
 - **Instant preview** — changes apply in real time, no reload
 - **One-click reset** — wipe all mappings for a site

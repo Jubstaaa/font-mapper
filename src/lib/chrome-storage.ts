@@ -35,6 +35,23 @@ export interface FontMapping {
     scale?: number
     bold?: boolean
     italic?: boolean
+    lineHeight?: number
+    letterSpacing?: number
+    wordSpacing?: number
+    color?: string
+}
+
+const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/
+
+function normalizeOptionalNumber(value: unknown, min: number, max: number): number | undefined {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
+    if (value < min || value > max) return undefined
+    return value
+}
+
+function normalizeOptionalColor(value: unknown): string | undefined {
+    if (typeof value !== 'string') return undefined
+    return HEX_COLOR_RE.test(value) ? value : undefined
 }
 
 export type FontMap = Record<string, FontMapping>
@@ -58,12 +75,20 @@ function normalizeMappings(raw: unknown): FontMap {
                 : undefined
             const bold = v.bold === true ? true : undefined
             const italic = v.italic === true ? true : undefined
+            const lineHeight = normalizeOptionalNumber(v.lineHeight, 0.5, 5)
+            const letterSpacing = normalizeOptionalNumber(v.letterSpacing, -0.5, 1)
+            const wordSpacing = normalizeOptionalNumber(v.wordSpacing, -0.5, 2)
+            const color = normalizeOptionalColor(v.color)
             out[source] = {
                 name: v.name,
                 id: typeof v.id === 'string' && v.id ? v.id : undefined,
                 scale,
                 bold,
                 italic,
+                lineHeight,
+                letterSpacing,
+                wordSpacing,
+                color,
             }
         } else if (
             value
