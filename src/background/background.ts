@@ -1,6 +1,15 @@
-import { STORAGE_KEY, loadAllMappings, migrateMappingsToSync } from '@/lib/chrome-storage'
+import { FONT_CACHE_KEY, STORAGE_KEY, loadAllMappings, loadCachedLocalFonts, migrateMappingsToSync, type CachedLocalFont, type FontMapping } from '@/lib/chrome-storage'
 
 const BADGE_COLOR = '#242424'
+
+function isMappingInstalledLocally(mapping: FontMapping, fonts: CachedLocalFont[]): boolean {
+    if (!fonts.length) return false
+    return fonts.some(f =>
+        f.family === mapping.name
+        || (mapping.id !== undefined && f.postscriptName === mapping.id)
+        || f.fullName === mapping.name,
+    )
+}
 
 chrome.runtime.onInstalled.addListener(({ reason }) => {
     if (reason === 'install') {
@@ -31,8 +40,9 @@ async function updateBadgeForTab(tabId: number, url: string | undefined): Promis
         await chrome.action.setBadgeText({ tabId, text: '' })
         return
     }
-    const all = await loadAllMappings()
-    const count = Object.keys(all[hostname] ?? {}).length
+    const [all, fonts] = await Promise.all([loadAllMappings(), loadCachedLocalFonts()])
+    const mappings = all[hostname] ?? {}
+    const count = Object.values(mappings).filter(m => isMappingInstalledLocally(m, fonts)).length
     await chrome.action.setBadgeBackgroundColor({ tabId, color: BADGE_COLOR })
     await chrome.action.setBadgeText({ tabId, text: count > 0 ? String(count) : '' })
 }
@@ -56,7 +66,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'sync' && area !== 'local') return
-    if (!(STORAGE_KEY in changes)) return
+    if (!(STORAGE_KEY in changes) && !(FONT_CACHE_KEY in changes)) return
     void refreshAllBadges()
 })
 

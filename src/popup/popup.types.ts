@@ -13,6 +13,8 @@ export interface FontMappingRowProps {
     mapping: FontMapping | null
     options: string[]
     variants: LocalFontFamilyVariants | null
+    sourceOnPage: boolean
+    targetAvailable: boolean
     onChange: (value: string | null) => void
     onScaleChange: (scale: number) => void
     onStyleChange: (style: { bold?: boolean; italic?: boolean }) => void

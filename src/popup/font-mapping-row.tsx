@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Bold, ChevronDown, ChevronUp, Italic, RotateCcw } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Bold, ChevronDown, ChevronUp, Italic, RotateCcw } from 'lucide-react'
 
 import { Slider } from '@/components/ui/slider'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 import { FontCombobox } from './font-combobox'
@@ -203,6 +204,8 @@ export function FontMappingRow({
     mapping,
     options,
     variants,
+    sourceOnPage,
+    targetAvailable,
     onChange,
     onScaleChange,
     onStyleChange,
@@ -243,18 +246,39 @@ export function FontMappingRow({
         || mapping?.wordSpacing !== undefined
         || mapping?.color !== undefined
 
+    const targetMissing = Boolean(mapped) && !targetAvailable
+    const warning = !sourceOnPage
+        ? {
+            kind: 'orphan' as const,
+            label: 'Not used on this page',
+            tooltip: 'This site doesn\'t use this font, so the mapping is dormant here. It will still apply on sites that do use it.',
+        }
+        : targetMissing
+            ? {
+                kind: 'missing' as const,
+                label: 'Target font missing',
+                tooltip: `"${mapped}" isn't installed on this device, so this mapping isn't applied here. Install it locally or pick a different replacement.`,
+            }
+            : null
+
+    const inertClass = warning?.kind === 'orphan' ? 'pointer-events-none opacity-50' : ''
+
     return (
         <li
             onMouseEnter={() => onHover(true)}
             onMouseLeave={() => onHover(false)}
             className={cn(
                 'flex flex-col rounded-lg border bg-card transition-colors',
-                mapped
-                    ? 'border-primary/30 bg-primary/[0.03]'
-                    : 'border-border/70 hover:border-border',
+                warning?.kind === 'orphan'
+                    ? 'border-border/40 bg-muted/30'
+                    : warning?.kind === 'missing'
+                        ? 'border-amber-500/40 bg-amber-500/[0.04]'
+                        : mapped
+                            ? 'border-primary/30 bg-primary/[0.03]'
+                            : 'border-border/70 hover:border-border',
             )}
         >
-            <div className="flex items-center gap-2 px-2.5 py-2">
+            <div className={cn('flex items-center gap-2 px-2.5 py-2', inertClass)}>
                 <div className="min-w-0 flex-1">
                     <div
                         className="truncate text-left text-[13px] text-foreground"
@@ -272,9 +296,30 @@ export function FontMappingRow({
                 </div>
             </div>
 
+            {warning && (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div
+                            className={cn(
+                                'flex cursor-help items-center gap-1.5 border-t px-2.5 py-1.5 text-[10px] font-medium',
+                                warning.kind === 'missing'
+                                    ? 'border-amber-500/30 bg-amber-500/[0.06] text-amber-800 dark:text-amber-300'
+                                    : 'border-border/40 bg-muted/20 text-muted-foreground',
+                            )}
+                        >
+                            <AlertTriangle className="size-3 shrink-0" />
+                            <span className="truncate">{warning.label}</span>
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" align="start">
+                        {warning.tooltip}
+                    </TooltipContent>
+                </Tooltip>
+            )}
+
             {mapped && (
                 <>
-                    <div className="flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5">
+                    <div className={cn('flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5', inertClass)}>
                         <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             Scale
                         </span>
@@ -328,7 +373,7 @@ export function FontMappingRow({
                             <RotateCcw className="size-3" />
                         </button>
                     </div>
-                    <div className="flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5">
+                    <div className={cn('flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5', inertClass)}>
                         <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             Style
                         </span>
@@ -373,7 +418,10 @@ export function FontMappingRow({
                         type="button"
                         aria-expanded={advancedOpen}
                         onClick={() => setAdvancedOpen(o => !o)}
-                        className="flex items-center justify-between gap-2 border-t border-primary/15 px-2.5 py-1.5 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+                        className={cn(
+                            'flex items-center justify-between gap-2 border-t border-primary/15 px-2.5 py-1.5 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground',
+                            inertClass,
+                        )}
                     >
                         <span className="flex items-center gap-1.5">
                             Advanced
@@ -384,7 +432,7 @@ export function FontMappingRow({
                         {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
                     </button>
                     {advancedOpen && (
-                        <>
+                        <div className={cn('flex flex-col', inertClass)}>
                             <AdvancedSlider
                                 label="Line"
                                 min={LINE_HEIGHT_MIN}
@@ -419,7 +467,7 @@ export function FontMappingRow({
                                 persistedValue={mapping?.color}
                                 onCommit={onColorChange}
                             />
-                        </>
+                        </div>
                     )}
                 </>
             )}

@@ -61,6 +61,15 @@ export function Popup() {
     const mappedCount = useMemo(() => Object.keys(mappings).length, [mappings])
     const totalCount = usedFonts.length
 
+    const usedFontsSet = useMemo(() => new Set(usedFonts), [usedFonts])
+
+    const allSources = useMemo(() => {
+        const orphans = Object.keys(mappings)
+            .filter(k => !usedFontsSet.has(k))
+            .sort((a, b) => a.localeCompare(b))
+        return [...usedFonts, ...orphans]
+    }, [usedFonts, mappings, usedFontsSet])
+
     const persistDebounced = useCallback(
         (host: string, next: FontMap) => {
             if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current)
@@ -293,12 +302,12 @@ export function Popup() {
                         className="size-6 shrink-0 rounded-md ring-1 ring-white/10"
                     />
                     <h1 className="text-sm font-semibold tracking-tight">FontMapper</h1>
-                    {status === 'ready' && totalCount > 0 && (
+                    {status === 'ready' && allSources.length > 0 && (
                         <Badge
                             variant="secondary"
                             className="ml-auto h-5 border-0 bg-white/10 px-1.5 text-[10px] font-medium text-white/85"
                         >
-                            {mappedCount}/{totalCount} mapped
+                            {mappedCount}/{allSources.length} mapped
                         </Badge>
                     )}
                 </div>
@@ -349,7 +358,7 @@ export function Popup() {
                     </div>
                 )}
 
-                {status === 'ready' && totalCount === 0 && (
+                {status === 'ready' && allSources.length === 0 && (
                     <div className="flex flex-col items-center justify-center gap-2 px-8 py-12 text-center text-muted-foreground">
                         <Type className="size-5" />
                         <p className="text-xs">No fonts detected on this page.</p>
@@ -373,11 +382,13 @@ export function Popup() {
                     </button>
                 )}
 
-                {status === 'ready' && totalCount > 0 && (
+                {status === 'ready' && allSources.length > 0 && (
                     <ScrollArea className="h-[420px]">
                         <ul className="flex flex-col gap-1.5 p-3">
-                            {usedFonts.map(font => {
+                            {allSources.map(font => {
                                 const mapping = mappings[font] ?? null
+                                const sourceOnPage = usedFontsSet.has(font)
+                                const targetAvailable = !mapping?.name || localFontIndex.has(mapping.name)
                                 return (
                                     <FontMappingRow
                                         key={font}
@@ -385,6 +396,8 @@ export function Popup() {
                                         mapping={mapping}
                                         options={familyOptions}
                                         variants={mapping ? getFamilyVariants(mapping.name, localFonts) : null}
+                                        sourceOnPage={sourceOnPage}
+                                        targetAvailable={targetAvailable}
                                         onChange={value => handleChange(font, value)}
                                         onScaleChange={scale => handleScaleChange(font, scale)}
                                         onStyleChange={style => handleStyleChange(font, style)}
@@ -401,7 +414,7 @@ export function Popup() {
                 )}
             </main>
 
-            {status === 'ready' && totalCount > 0 && (
+            {status === 'ready' && allSources.length > 0 && (
                 <>
                     <Separator />
                     <footer className="flex items-center justify-between px-3 py-2">
