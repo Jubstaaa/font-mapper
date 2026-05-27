@@ -6,7 +6,14 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { getFamilyVariants, type LocalFont } from '@/lib/chrome-fonts'
-import { loadCachedLocalFonts } from '@/lib/chrome-storage'
+import {
+    FONT_CACHE_VERSION,
+    loadCachedLocalFonts,
+    loadCachedLocalFontsVersion,
+    loadMappingsForHost,
+    saveMappingsForHost,
+    type FontMap,
+} from '@/lib/chrome-storage'
 import {
     POPUP_PORT_NAME,
     sendToTab,
@@ -14,7 +21,6 @@ import {
     type GetUsedFontsResponse,
     type PortMessage,
 } from '@/lib/chrome-messaging'
-import { loadMappingsForHost, saveMappingsForHost, type FontMap } from '@/lib/chrome-storage'
 
 import { FontMappingRow } from './font-mapping-row'
 import type { PopupStatus } from './popup.types'
@@ -26,6 +32,7 @@ export function Popup() {
     const [usedFonts, setUsedFonts] = useState<string[]>([])
     const [localFonts, setLocalFonts] = useState<LocalFont[]>([])
     const [mappings, setMappings] = useState<FontMap>({})
+    const [cacheStale, setCacheStale] = useState(false)
 
     const familyOptions = useMemo(() => {
         const seen = new Set<string>()
@@ -176,6 +183,10 @@ export function Popup() {
                 return
             }
 
+            const cachedVersion = await loadCachedLocalFontsVersion()
+            if (cancelled) return
+            setCacheStale(cachedVersion < FONT_CACHE_VERSION)
+
             const response = await sendToTab<GetUsedFontsResponse>(tab.id, { type: 'GET_USED_FONTS' })
             if (cancelled) return
 
@@ -301,6 +312,23 @@ export function Popup() {
                         <Type className="size-5" />
                         <p className="text-xs">No fonts detected on this page.</p>
                     </div>
+                )}
+
+                {status === 'ready' && cacheStale && (
+                    <button
+                        type="button"
+                        onClick={handleRefreshFonts}
+                        className="flex w-full items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-3 py-2 text-left text-[11px] text-amber-900 transition-colors hover:bg-amber-500/15 dark:text-amber-200"
+                    >
+                        <span className="leading-tight">
+                            Update font list to enable <strong className="font-semibold">Bold</strong> and{' '}
+                            <strong className="font-semibold">Italic</strong> toggles.
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1 font-medium underline-offset-2 hover:underline">
+                            <RefreshCw className="size-3" />
+                            Update
+                        </span>
+                    </button>
                 )}
 
                 {status === 'ready' && totalCount > 0 && (
