@@ -42,15 +42,37 @@ const GENERIC_KEYWORDS = new Set([
 
 const SKIP_KEYWORDS = new Set(['inherit', 'initial', 'unset', 'revert', 'revert-layer'])
 
+interface InlineSnapshot {
+    value: string
+    priority: string
+}
+
 interface OverrideState {
     sourceKey: string
     targetSignature: string
-    inlineFontFamily: string
-    inlineFontFamilyPriority: string
-    inlineFontSize: string
-    inlineFontSizePriority: string
+    inlineFontFamily: InlineSnapshot
+    inlineFontSize: InlineSnapshot
+    inlineLineHeight: InlineSnapshot
+    inlineLetterSpacing: InlineSnapshot
+    inlineWordSpacing: InlineSnapshot
+    inlineColor: InlineSnapshot
     originalComputedSizePx: number
     originalChain: string[]
+}
+
+function snapshotInline(el: HTMLElement, prop: string): InlineSnapshot {
+    return {
+        value: el.style.getPropertyValue(prop),
+        priority: el.style.getPropertyPriority(prop),
+    }
+}
+
+function restoreInline(el: HTMLElement, prop: string, snap: InlineSnapshot): void {
+    if (snap.value) {
+        el.style.setProperty(prop, snap.value, snap.priority)
+    } else {
+        el.style.removeProperty(prop)
+    }
 }
 
 const overrides = new WeakMap<HTMLElement, OverrideState>()
@@ -127,22 +149,27 @@ function matchChain(chain: string[]): { sourceKey: string; mapping: FontMapping 
 }
 
 function targetSignatureFor(mapping: FontMapping): string {
-    return `${resolveLocalName(mapping)}|${mapping.scale ?? 1}|${mapping.bold ? 1 : 0}|${mapping.italic ? 1 : 0}`
+    return [
+        resolveLocalName(mapping),
+        mapping.scale ?? 1,
+        mapping.bold ? 1 : 0,
+        mapping.italic ? 1 : 0,
+        mapping.lineHeight ?? '_',
+        mapping.letterSpacing ?? '_',
+        mapping.wordSpacing ?? '_',
+        mapping.color ?? '_',
+    ].join('|')
 }
 
 function restoreElement(el: HTMLElement): void {
     const state = overrides.get(el)
     if (!state) return
-    if (state.inlineFontFamily) {
-        el.style.setProperty('font-family', state.inlineFontFamily, state.inlineFontFamilyPriority)
-    } else {
-        el.style.removeProperty('font-family')
-    }
-    if (state.inlineFontSize) {
-        el.style.setProperty('font-size', state.inlineFontSize, state.inlineFontSizePriority)
-    } else {
-        el.style.removeProperty('font-size')
-    }
+    restoreInline(el, 'font-family', state.inlineFontFamily)
+    restoreInline(el, 'font-size', state.inlineFontSize)
+    restoreInline(el, 'line-height', state.inlineLineHeight)
+    restoreInline(el, 'letter-spacing', state.inlineLetterSpacing)
+    restoreInline(el, 'word-spacing', state.inlineWordSpacing)
+    restoreInline(el, 'color', state.inlineColor)
     el.removeAttribute(MAPPED_ATTR)
     overrides.delete(el)
 }
@@ -169,27 +196,40 @@ function applyToElement(el: HTMLElement): void {
     const parsedSize = parseFloat(cs.fontSize)
     const originalSizePx = Number.isFinite(parsedSize) ? parsedSize : 16
 
-    const inlineFontFamily = el.style.getPropertyValue('font-family')
-    const inlineFontFamilyPriority = el.style.getPropertyPriority('font-family')
-    const inlineFontSize = el.style.getPropertyValue('font-size')
-    const inlineFontSizePriority = el.style.getPropertyPriority('font-size')
+    const snapshots = {
+        inlineFontFamily: snapshotInline(el, 'font-family'),
+        inlineFontSize: snapshotInline(el, 'font-size'),
+        inlineLineHeight: snapshotInline(el, 'line-height'),
+        inlineLetterSpacing: snapshotInline(el, 'letter-spacing'),
+        inlineWordSpacing: snapshotInline(el, 'word-spacing'),
+        inlineColor: snapshotInline(el, 'color'),
+    }
 
     const targetFamily = quoteFamily(resolveLocalName(match.mapping))
     el.style.setProperty('font-family', targetFamily, 'important')
 
-    const scale = match.mapping.scale
-    if (typeof scale === 'number' && Number.isFinite(scale) && scale > 0 && scale !== 1) {
-        el.style.setProperty('font-size', `${(originalSizePx * scale).toFixed(3)}px`, 'important')
+    const m = match.mapping
+    if (typeof m.scale === 'number' && Number.isFinite(m.scale) && m.scale > 0 && m.scale !== 1) {
+        el.style.setProperty('font-size', `${(originalSizePx * m.scale).toFixed(3)}px`, 'important')
+    }
+    if (typeof m.lineHeight === 'number' && Number.isFinite(m.lineHeight) && m.lineHeight > 0) {
+        el.style.setProperty('line-height', String(m.lineHeight), 'important')
+    }
+    if (typeof m.letterSpacing === 'number' && Number.isFinite(m.letterSpacing)) {
+        el.style.setProperty('letter-spacing', `${m.letterSpacing}em`, 'important')
+    }
+    if (typeof m.wordSpacing === 'number' && Number.isFinite(m.wordSpacing)) {
+        el.style.setProperty('word-spacing', `${m.wordSpacing}em`, 'important')
+    }
+    if (typeof m.color === 'string' && m.color) {
+        el.style.setProperty('color', m.color, 'important')
     }
 
     el.setAttribute(MAPPED_ATTR, match.sourceKey)
     overrides.set(el, {
         sourceKey: match.sourceKey,
-        targetSignature: targetSignatureFor(match.mapping),
-        inlineFontFamily,
-        inlineFontFamilyPriority,
-        inlineFontSize,
-        inlineFontSizePriority,
+        targetSignature: targetSignatureFor(m),
+        ...snapshots,
         originalComputedSizePx: originalSizePx,
         originalChain: chain,
     })
@@ -240,15 +280,33 @@ function indexCache(name: string, node: Element): void {
     list.push(new WeakRef(node))
 }
 
+const chainCache = new Map<Element, string[]>()
+
 function chainForElement(node: Element): string[] {
+    const cached = chainCache.get(node)
+    if (cached) return cached
+    const result = computeChainForElement(node)
+    chainCache.set(node, result)
+    return result
+}
+
+function computeChainForElement(node: Element): string[] {
     const state = node instanceof HTMLElement ? overrides.get(node) : undefined
     if (state) return state.originalChain
     const family = window.getComputedStyle(node).fontFamily
     if (!family) return []
+    const parent = node.parentElement
+    if (parent) {
+        const parentFamily = window.getComputedStyle(parent).fontFamily
+        if (parentFamily === family) {
+            return chainForElement(parent)
+        }
+    }
     return parseFontFamilyChain(family)
 }
 
 function collectUsedFonts(): string[] {
+    chainCache.clear()
     fontElementCache.clear()
     const found = new Set<string>()
     if (!document.body) return []

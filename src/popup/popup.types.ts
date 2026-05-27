@@ -16,6 +16,10 @@ export interface FontMappingRowProps {
     onChange: (value: string | null) => void
     onScaleChange: (scale: number) => void
     onStyleChange: (style: { bold?: boolean; italic?: boolean }) => void
+    onLineHeightChange: (value: number | undefined) => void
+    onLetterSpacingChange: (value: number | undefined) => void
+    onWordSpacingChange: (value: number | undefined) => void
+    onColorChange: (value: string | undefined) => void
     onHover: (hovering: boolean) => void
 }
 

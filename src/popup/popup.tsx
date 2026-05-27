@@ -141,6 +141,48 @@ export function Popup() {
         [mappings, hostname, tabId, persistDebounced],
     )
 
+    const applyMappingUpdate = useCallback(
+        (source: string, patch: Partial<typeof mappings[string]>) => {
+            const current = mappings[source]
+            if (!current) return
+            const next: FontMap = { ...mappings, [source]: { ...current, ...patch } }
+            setMappings(next)
+            if (tabId != null) {
+                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
+            }
+            persistDebounced(hostname, next)
+        },
+        [mappings, hostname, tabId, persistDebounced],
+    )
+
+    const handleLineHeightChange = useCallback(
+        (source: string, value: number | undefined) => {
+            applyMappingUpdate(source, { lineHeight: value })
+        },
+        [applyMappingUpdate],
+    )
+
+    const handleLetterSpacingChange = useCallback(
+        (source: string, value: number | undefined) => {
+            applyMappingUpdate(source, { letterSpacing: value })
+        },
+        [applyMappingUpdate],
+    )
+
+    const handleWordSpacingChange = useCallback(
+        (source: string, value: number | undefined) => {
+            applyMappingUpdate(source, { wordSpacing: value })
+        },
+        [applyMappingUpdate],
+    )
+
+    const handleColorChange = useCallback(
+        (source: string, value: string | undefined) => {
+            applyMappingUpdate(source, { color: value })
+        },
+        [applyMappingUpdate],
+    )
+
     const handleHover = useCallback((source: string, hovering: boolean) => {
         const port = portRef.current
         if (!port) return
@@ -346,6 +388,10 @@ export function Popup() {
                                         onChange={value => handleChange(font, value)}
                                         onScaleChange={scale => handleScaleChange(font, scale)}
                                         onStyleChange={style => handleStyleChange(font, style)}
+                                        onLineHeightChange={value => handleLineHeightChange(font, value)}
+                                        onLetterSpacingChange={value => handleLetterSpacingChange(font, value)}
+                                        onWordSpacingChange={value => handleWordSpacingChange(font, value)}
+                                        onColorChange={value => handleColorChange(font, value)}
                                         onHover={hovering => handleHover(font, hovering)}
                                     />
                                 )
