@@ -7,3 +7,4 @@ dist
 *.zip
 *.tsbuildinfo
 bun.lockb
+docs/
