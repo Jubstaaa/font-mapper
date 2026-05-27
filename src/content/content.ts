@@ -28,15 +28,22 @@ function resolveLocalName(mapping: { name: string; id?: string }): string {
     return mapping.id || mapping.name
 }
 
+function sizeAdjustValue(scale: number | undefined): string | null {
+    if (typeof scale !== 'number' || !Number.isFinite(scale) || scale <= 0 || scale === 1) return null
+    return `${(scale * 100).toFixed(2)}%`
+}
+
 function buildCss(mappings: FontMap): string {
     const rules: string[] = []
     for (const [source, mapping] of Object.entries(mappings)) {
         if (!mapping?.name) continue
         const s = escapeSingleQuoted(source)
         const t = escapeSingleQuoted(resolveLocalName(mapping))
+        const sizeAdjust = sizeAdjustValue(mapping.scale)
+        const sizeAdjustDecl = sizeAdjust ? ` size-adjust: ${sizeAdjust};` : ''
         rules.push(
-            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: normal; font-weight: 100 1000; font-display: swap; }`,
-            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: italic; font-weight: 100 1000; font-display: swap; }`,
+            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: normal; font-weight: 100 1000; font-display: swap;${sizeAdjustDecl} }`,
+            `@font-face { font-family: '${s}'; src: local('${t}'); font-style: italic; font-weight: 100 1000; font-display: swap;${sizeAdjustDecl} }`,
         )
     }
     return rules.join('\n')
@@ -58,13 +65,17 @@ async function applyFontFaces(mappings: FontMap): Promise<void> {
     for (const [source, mapping] of Object.entries(mappings)) {
         if (!mapping?.name) continue
         const src = `local("${escapeDoubleQuoted(resolveLocalName(mapping))}")`
+        const sizeAdjust = sizeAdjustValue(mapping.scale)
+        const descriptors: FontFaceDescriptors = {
+            weight: '100 1000',
+            display: 'swap',
+        }
+        if (sizeAdjust) {
+            (descriptors as FontFaceDescriptors & { sizeAdjust?: string }).sizeAdjust = sizeAdjust
+        }
         const faces: FontFace[] = []
         for (const style of ['normal', 'italic'] as const) {
-            const ff = new FontFace(source, src, {
-                style,
-                weight: '100 1000',
-                display: 'swap',
-            })
+            const ff = new FontFace(source, src, { ...descriptors, style })
             try {
                 const loaded = await ff.load()
                 document.fonts.add(loaded)

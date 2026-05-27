@@ -1,3 +1,5 @@
+import type { FontMapping } from '@/lib/chrome-storage'
+
 export type PopupStatus =
     | 'loading'
     | 'restricted'
@@ -7,9 +9,10 @@ export type PopupStatus =
 
 export interface FontMappingRowProps {
     source: string
-    mapped: string | null
+    mapping: FontMapping | null
     options: string[]
     onChange: (value: string | null) => void
+    onScaleChange: (scale: number) => void
     onHover: (hovering: boolean) => void
 }
 
