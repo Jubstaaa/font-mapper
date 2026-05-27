@@ -34,9 +34,31 @@ export function Popup() {
     }, [localFonts])
 
     const portRef = useRef<chrome.runtime.Port | null>(null)
+    const saveTimerRef = useRef<number | null>(null)
 
     const mappedCount = useMemo(() => Object.keys(mappings).length, [mappings])
     const totalCount = usedFonts.length
+
+    const persistDebounced = useCallback(
+        (host: string, next: FontMap) => {
+            if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current)
+            saveTimerRef.current = window.setTimeout(() => {
+                void saveMappingsForHost(host, next)
+            }, 200)
+        },
+        [],
+    )
+
+    const persistNow = useCallback(
+        async (host: string, next: FontMap) => {
+            if (saveTimerRef.current != null) {
+                window.clearTimeout(saveTimerRef.current)
+                saveTimerRef.current = null
+            }
+            await saveMappingsForHost(host, next)
+        },
+        [],
+    )
 
     const handleChange = useCallback(
         async (source: string, target: string | null) => {
@@ -45,15 +67,35 @@ export function Popup() {
                 delete next[source]
             } else {
                 const psName = localFontIndex.get(target)
-                next[source] = psName ? { name: target, id: psName } : { name: target }
+                const prevScale = next[source]?.scale
+                next[source] = {
+                    name: target,
+                    ...(psName ? { id: psName } : {}),
+                    ...(prevScale ? { scale: prevScale } : {}),
+                }
             }
             setMappings(next)
-            await saveMappingsForHost(hostname, next)
+            await persistNow(hostname, next)
             if (tabId != null) {
                 await sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
             }
         },
-        [mappings, hostname, tabId, localFontIndex],
+        [mappings, hostname, tabId, localFontIndex, persistNow],
+    )
+
+    const handleScaleChange = useCallback(
+        (source: string, scale: number) => {
+            const current = mappings[source]
+            if (!current) return
+            const nextMapping = { ...current, scale: scale === 1 ? undefined : scale }
+            const next: FontMap = { ...mappings, [source]: nextMapping }
+            setMappings(next)
+            if (tabId != null) {
+                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
+            }
+            persistDebounced(hostname, next)
+        },
+        [mappings, hostname, tabId, persistDebounced],
     )
 
     const handleHover = useCallback((source: string, hovering: boolean) => {
@@ -69,11 +111,11 @@ export function Popup() {
 
     const handleReset = useCallback(async () => {
         setMappings({})
-        await saveMappingsForHost(hostname, {})
+        await persistNow(hostname, {})
         if (tabId != null) {
             await sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: {} })
         }
-    }, [hostname, tabId])
+    }, [hostname, tabId, persistNow])
 
     const handleReload = useCallback(() => {
         if (tabId != null) chrome.tabs.reload(tabId)
@@ -232,9 +274,10 @@ export function Popup() {
                                 <FontMappingRow
                                     key={font}
                                     source={font}
-                                    mapped={mappings[font]?.name ?? null}
+                                    mapping={mappings[font] ?? null}
                                     options={localFonts.map(f => f.family)}
                                     onChange={value => handleChange(font, value)}
+                                    onScaleChange={scale => handleScaleChange(font, scale)}
                                     onHover={hovering => handleHover(font, hovering)}
                                 />
                             ))}

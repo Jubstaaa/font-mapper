@@ -21,6 +21,7 @@ export async function saveCachedLocalFonts(fonts: CachedLocalFont[]): Promise<vo
 export interface FontMapping {
     name: string
     id?: string
+    scale?: number
 }
 
 export type FontMap = Record<string, FontMapping>
@@ -39,9 +40,13 @@ function normalizeMappings(raw: unknown): FontMap {
             && typeof (value as FontMapping).name === 'string'
         ) {
             const v = value as FontMapping
+            const scale = typeof v.scale === 'number' && Number.isFinite(v.scale) && v.scale > 0 && v.scale !== 1
+                ? v.scale
+                : undefined
             out[source] = {
                 name: v.name,
                 id: typeof v.id === 'string' && v.id ? v.id : undefined,
+                scale,
             }
         } else if (
             value
