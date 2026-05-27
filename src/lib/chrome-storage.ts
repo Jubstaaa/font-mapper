@@ -1,5 +1,7 @@
 export const STORAGE_KEY = 'fontMapperMappings'
 export const FONT_CACHE_KEY = 'fontMapperLocalFonts'
+export const FONT_CACHE_VERSION_KEY = 'fontMapperLocalFontsVersion'
+export const FONT_CACHE_VERSION = 2
 
 export interface CachedLocalFont {
     family: string
@@ -14,14 +16,25 @@ export async function loadCachedLocalFonts(): Promise<CachedLocalFont[]> {
     return Array.isArray(raw) ? (raw as CachedLocalFont[]) : []
 }
 
+export async function loadCachedLocalFontsVersion(): Promise<number> {
+    const result = await chrome.storage.local.get(FONT_CACHE_VERSION_KEY)
+    const v = result[FONT_CACHE_VERSION_KEY]
+    return typeof v === 'number' ? v : 0
+}
+
 export async function saveCachedLocalFonts(fonts: CachedLocalFont[]): Promise<void> {
-    await chrome.storage.local.set({ [FONT_CACHE_KEY]: fonts })
+    await chrome.storage.local.set({
+        [FONT_CACHE_KEY]: fonts,
+        [FONT_CACHE_VERSION_KEY]: FONT_CACHE_VERSION,
+    })
 }
 
 export interface FontMapping {
     name: string
     id?: string
     scale?: number
+    bold?: boolean
+    italic?: boolean
 }
 
 export type FontMap = Record<string, FontMapping>
@@ -43,10 +56,14 @@ function normalizeMappings(raw: unknown): FontMap {
             const scale = typeof v.scale === 'number' && Number.isFinite(v.scale) && v.scale > 0 && v.scale !== 1
                 ? v.scale
                 : undefined
+            const bold = v.bold === true ? true : undefined
+            const italic = v.italic === true ? true : undefined
             out[source] = {
                 name: v.name,
                 id: typeof v.id === 'string' && v.id ? v.id : undefined,
                 scale,
+                bold,
+                italic,
             }
         } else if (
             value

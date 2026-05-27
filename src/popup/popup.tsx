@@ -5,8 +5,15 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import type { LocalFont } from '@/lib/chrome-fonts'
-import { loadCachedLocalFonts } from '@/lib/chrome-storage'
+import { getFamilyVariants, type LocalFont } from '@/lib/chrome-fonts'
+import {
+    FONT_CACHE_VERSION,
+    loadCachedLocalFonts,
+    loadCachedLocalFontsVersion,
+    loadMappingsForHost,
+    saveMappingsForHost,
+    type FontMap,
+} from '@/lib/chrome-storage'
 import {
     POPUP_PORT_NAME,
     sendToTab,
@@ -14,7 +21,6 @@ import {
     type GetUsedFontsResponse,
     type PortMessage,
 } from '@/lib/chrome-messaging'
-import { loadMappingsForHost, saveMappingsForHost, type FontMap } from '@/lib/chrome-storage'
 
 import { FontMappingRow } from './font-mapping-row'
 import type { PopupStatus } from './popup.types'
@@ -26,12 +32,28 @@ export function Popup() {
     const [usedFonts, setUsedFonts] = useState<string[]>([])
     const [localFonts, setLocalFonts] = useState<LocalFont[]>([])
     const [mappings, setMappings] = useState<FontMap>({})
+    const [cacheStale, setCacheStale] = useState(false)
+
+    const familyOptions = useMemo(() => {
+        const seen = new Set<string>()
+        const list: string[] = []
+        for (const f of localFonts) {
+            if (seen.has(f.family)) continue
+            seen.add(f.family)
+            list.push(f.family)
+        }
+        return list
+    }, [localFonts])
 
     const localFontIndex = useMemo(() => {
         const map = new Map<string, string>()
-        for (const f of localFonts) map.set(f.family, f.postscriptName)
+        for (const family of familyOptions) {
+            const variants = getFamilyVariants(family, localFonts)
+            const target = variants.regular
+            if (target) map.set(family, target.postscriptName)
+        }
         return map
-    }, [localFonts])
+    }, [familyOptions, localFonts])
 
     const portRef = useRef<chrome.runtime.Port | null>(null)
     const saveTimerRef = useRef<number | null>(null)
@@ -98,6 +120,27 @@ export function Popup() {
         [mappings, hostname, tabId, persistDebounced],
     )
 
+    const handleStyleChange = useCallback(
+        (source: string, style: { bold?: boolean; italic?: boolean }) => {
+            const current = mappings[source]
+            if (!current) return
+            const next: FontMap = {
+                ...mappings,
+                [source]: {
+                    ...current,
+                    bold: style.bold ? true : undefined,
+                    italic: style.italic ? true : undefined,
+                },
+            }
+            setMappings(next)
+            if (tabId != null) {
+                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
+            }
+            persistDebounced(hostname, next)
+        },
+        [mappings, hostname, tabId, persistDebounced],
+    )
+
     const handleHover = useCallback((source: string, hovering: boolean) => {
         const port = portRef.current
         if (!port) return
@@ -139,6 +182,10 @@ export function Popup() {
                 setStatus('permission-required')
                 return
             }
+
+            const cachedVersion = await loadCachedLocalFontsVersion()
+            if (cancelled) return
+            setCacheStale(cachedVersion < FONT_CACHE_VERSION)
 
             const response = await sendToTab<GetUsedFontsResponse>(tab.id, { type: 'GET_USED_FONTS' })
             if (cancelled) return
@@ -267,20 +314,42 @@ export function Popup() {
                     </div>
                 )}
 
+                {status === 'ready' && cacheStale && (
+                    <button
+                        type="button"
+                        onClick={handleRefreshFonts}
+                        className="flex w-full items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-3 py-2 text-left text-[11px] text-amber-900 transition-colors hover:bg-amber-500/15 dark:text-amber-200"
+                    >
+                        <span className="leading-tight">
+                            Update font list to enable <strong className="font-semibold">Bold</strong> and{' '}
+                            <strong className="font-semibold">Italic</strong> toggles.
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1 font-medium underline-offset-2 hover:underline">
+                            <RefreshCw className="size-3" />
+                            Update
+                        </span>
+                    </button>
+                )}
+
                 {status === 'ready' && totalCount > 0 && (
                     <ScrollArea className="h-[420px]">
                         <ul className="flex flex-col gap-1.5 p-3">
-                            {usedFonts.map(font => (
-                                <FontMappingRow
-                                    key={font}
-                                    source={font}
-                                    mapping={mappings[font] ?? null}
-                                    options={localFonts.map(f => f.family)}
-                                    onChange={value => handleChange(font, value)}
-                                    onScaleChange={scale => handleScaleChange(font, scale)}
-                                    onHover={hovering => handleHover(font, hovering)}
-                                />
-                            ))}
+                            {usedFonts.map(font => {
+                                const mapping = mappings[font] ?? null
+                                return (
+                                    <FontMappingRow
+                                        key={font}
+                                        source={font}
+                                        mapping={mapping}
+                                        options={familyOptions}
+                                        variants={mapping ? getFamilyVariants(mapping.name, localFonts) : null}
+                                        onChange={value => handleChange(font, value)}
+                                        onScaleChange={scale => handleScaleChange(font, scale)}
+                                        onStyleChange={style => handleStyleChange(font, style)}
+                                        onHover={hovering => handleHover(font, hovering)}
+                                    />
+                                )
+                            })}
                         </ul>
                     </ScrollArea>
                 )}

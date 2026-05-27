@@ -1,4 +1,4 @@
-import { ArrowRight, RotateCcw } from 'lucide-react'
+import { ArrowRight, Bold, Italic, RotateCcw } from 'lucide-react'
 
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
@@ -19,14 +19,21 @@ export function FontMappingRow({
     source,
     mapping,
     options,
+    variants,
     onChange,
     onScaleChange,
+    onStyleChange,
     onHover,
 }: FontMappingRowProps) {
     const mapped = mapping?.name ?? null
     const scale = mapping?.scale ?? SCALE_DEFAULT
     const scalePct = Math.round(scale * 100)
     const scaleAtDefault = Math.abs(scale - SCALE_DEFAULT) < 0.001
+
+    const boldActive = mapping?.bold === true
+    const italicActive = mapping?.italic === true
+    const boldAvailable = Boolean(variants?.bold) || Boolean(variants?.boldItalic)
+    const italicAvailable = Boolean(variants?.italic) || Boolean(variants?.boldItalic)
 
     return (
         <li
@@ -58,38 +65,81 @@ export function FontMappingRow({
             </div>
 
             {mapped && (
-                <div className="flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5">
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Scale
-                    </span>
-                    <Slider
-                        value={[scale]}
-                        min={SCALE_MIN}
-                        max={SCALE_MAX}
-                        step={SCALE_STEP}
-                        onValueChange={values => {
-                            const v = values[0]
-                            if (typeof v === 'number') onScaleChange(v)
-                        }}
-                        className="flex-1"
-                    />
-                    <span className="w-10 text-right text-[11px] font-medium tabular-nums text-foreground">
-                        {scalePct}%
-                    </span>
-                    <button
-                        type="button"
-                        aria-label="Reset scale"
-                        disabled={scaleAtDefault}
-                        onClick={() => onScaleChange(SCALE_DEFAULT)}
-                        className={cn(
-                            'flex size-5 items-center justify-center rounded-sm text-muted-foreground/70 transition-opacity',
-                            'hover:bg-accent hover:text-foreground',
-                            scaleAtDefault && 'pointer-events-none opacity-0',
-                        )}
-                    >
-                        <RotateCcw className="size-3" />
-                    </button>
-                </div>
+                <>
+                    <div className="flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Scale
+                        </span>
+                        <Slider
+                            value={[scale]}
+                            min={SCALE_MIN}
+                            max={SCALE_MAX}
+                            step={SCALE_STEP}
+                            onValueChange={values => {
+                                const v = values[0]
+                                if (typeof v === 'number') onScaleChange(v)
+                            }}
+                            className="flex-1"
+                        />
+                        <span className="w-10 text-right text-[11px] font-medium tabular-nums text-foreground">
+                            {scalePct}%
+                        </span>
+                        <button
+                            type="button"
+                            aria-label="Reset scale"
+                            disabled={scaleAtDefault}
+                            onClick={() => onScaleChange(SCALE_DEFAULT)}
+                            className={cn(
+                                'flex size-5 items-center justify-center rounded-sm text-muted-foreground/70 transition-opacity',
+                                'hover:bg-accent hover:text-foreground',
+                                scaleAtDefault && 'pointer-events-none opacity-0',
+                            )}
+                        >
+                            <RotateCcw className="size-3" />
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Style
+                        </span>
+                        <div className="flex items-center gap-1">
+                            <button
+                                type="button"
+                                aria-label="Bold"
+                                aria-pressed={boldActive}
+                                disabled={!boldAvailable}
+                                title={boldAvailable ? 'Bold' : `No bold variant available for ${mapped}`}
+                                onClick={() => onStyleChange({ bold: !boldActive, italic: italicActive })}
+                                className={cn(
+                                    'flex size-6 items-center justify-center rounded-sm border text-foreground transition-colors',
+                                    boldActive
+                                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+                                        : 'border-border bg-background hover:bg-accent',
+                                    !boldAvailable && 'pointer-events-none opacity-40',
+                                )}
+                            >
+                                <Bold className="size-3" />
+                            </button>
+                            <button
+                                type="button"
+                                aria-label="Italic"
+                                aria-pressed={italicActive}
+                                disabled={!italicAvailable}
+                                title={italicAvailable ? 'Italic' : `No italic variant available for ${mapped}`}
+                                onClick={() => onStyleChange({ bold: boldActive, italic: !italicActive })}
+                                className={cn(
+                                    'flex size-6 items-center justify-center rounded-sm border text-foreground transition-colors',
+                                    italicActive
+                                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+                                        : 'border-border bg-background hover:bg-accent',
+                                    !italicAvailable && 'pointer-events-none opacity-40',
+                                )}
+                            >
+                                <Italic className="size-3" />
+                            </button>
+                        </div>
+                    </div>
+                </>
             )}
         </li>
     )
