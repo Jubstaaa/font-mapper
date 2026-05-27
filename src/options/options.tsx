@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { Check, Download, RefreshCw, ShieldAlert, Sparkles, Trash2, Upload, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { isLocalFontsApiAvailable, listLocalFonts } from '@/lib/chrome-fonts'
 import {
     clearAllSettings,
@@ -67,18 +68,19 @@ function Options() {
     }, [])
 
     const handleGrant = useCallback(async () => {
-        setStatus('loading')
+        const isRefresh = status === 'granted'
+        if (!isRefresh) setStatus('loading')
         setErrorMessage(null)
         try {
             const fonts = await listLocalFonts()
             await saveCachedLocalFonts(fonts)
             setFontCount(fonts.length)
-            setStatus('granted')
+            if (!isRefresh) setStatus('granted')
         } catch (err) {
             setStatus('denied')
             setErrorMessage(err instanceof Error ? err.message : 'Unknown error')
         }
-    }, [])
+    }, [status])
 
     useEffect(() => {
         if (!isLocalFontsApiAvailable()) {
@@ -201,16 +203,24 @@ function Options() {
                     <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
                         Save your font mappings to a JSON file, move them to another computer, or wipe them clean.
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                        <Button onClick={handleExport} variant="outline" size="sm">
-                            <Download className="mr-1.5 size-3.5" />
-                            Export mappings
-                        </Button>
-                        <Button onClick={() => importInputRef.current?.click()} variant="outline" size="sm">
-                            <Upload className="mr-1.5 size-3.5" />
-                            Import mappings
-                        </Button>
-                        <Button onClick={handleReset} variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                    <div className="flex flex-col gap-3">
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button onClick={handleExport} variant="outline" size="sm">
+                                <Download className="mr-1.5 size-3.5" />
+                                Export mappings
+                            </Button>
+                            <Button onClick={() => importInputRef.current?.click()} variant="outline" size="sm">
+                                <Upload className="mr-1.5 size-3.5" />
+                                Import mappings
+                            </Button>
+                        </div>
+                        <Separator />
+                        <Button
+                            onClick={handleReset}
+                            variant="outline"
+                            size="sm"
+                            className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive dark:border-destructive/60"
+                        >
                             <Trash2 className="mr-1.5 size-3.5" />
                             Clear all mappings
                         </Button>
