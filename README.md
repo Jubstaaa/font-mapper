@@ -42,7 +42,11 @@ Built for people who care about typography, accessibility, or just don't like ho
 - **Zero data collection** — everything stays local, no network requests, no analytics, no accounts
 
 <p align="center">
-  <img src="store/screenshot-popup-1280x800.png" alt="FontMapper popup detecting fonts on a GitHub repo page" width="900" />
+  <img src="store/screenshot-popup-1280x800.jpg" alt="FontMapper popup detecting fonts on a GitHub PR page, with per-mapping scale and bold/italic toggles" width="900" />
+</p>
+
+<p align="center">
+  <img src="store/screenshot-options-1280x800.jpg" alt="FontMapper options page with local font cache and backup &amp; restore controls" width="900" />
 </p>
 
 ## How it works
