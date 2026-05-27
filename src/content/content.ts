@@ -1,4 +1,13 @@
-import { loadMappingsForHost, onMappingsChanged, type FontMap } from '@/lib/chrome-storage'
+import {
+    FONT_CACHE_KEY,
+    loadCachedLocalFonts,
+    loadMappingsForHost,
+    onMappingsChanged,
+    type CachedLocalFont,
+    type FontMap,
+    type FontMapping,
+} from '@/lib/chrome-storage'
+import { getFamilyVariants } from '@/lib/chrome-fonts'
 import {
     POPUP_PORT_NAME,
     type ApplyMappingsMessage,
@@ -15,6 +24,7 @@ const HIGHLIGHT_CLASS = '__font_mapper_highlight__'
 
 const fontElementCache = new Map<string, WeakRef<Element>[]>()
 const activeFontFaces = new Map<string, FontFace[]>()
+let cachedFonts: CachedLocalFont[] = []
 
 function escapeSingleQuoted(name: string): string {
     return name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
@@ -24,7 +34,16 @@ function escapeDoubleQuoted(name: string): string {
     return name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-function resolveLocalName(mapping: { name: string; id?: string }): string {
+function resolveLocalName(mapping: FontMapping): string {
+    if (cachedFonts.length && (mapping.bold || mapping.italic)) {
+        const variants = getFamilyVariants(mapping.name, cachedFonts)
+        const target =
+            (mapping.bold && mapping.italic && variants.boldItalic)
+            || (mapping.bold && variants.bold)
+            || (mapping.italic && variants.italic)
+            || variants.regular
+        if (target) return target.postscriptName
+    }
     return mapping.id || mapping.name
 }
 
@@ -183,8 +202,17 @@ function apply(mappings: FontMap): void {
     void applyFontFaces(mappings)
 }
 
+async function loadFontCache(): Promise<void> {
+    try {
+        cachedFonts = await loadCachedLocalFonts()
+    } catch {
+        cachedFonts = []
+    }
+}
+
 async function init(): Promise<void> {
     try {
+        await loadFontCache()
         const mappings = await loadMappingsForHost(location.hostname)
         apply(mappings)
     } catch {}
@@ -198,6 +226,13 @@ window.addEventListener('load', ensureLastChild)
 
 onMappingsChanged(store => {
     apply(store[location.hostname] || {})
+})
+
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes[FONT_CACHE_KEY]) return
+    const next = changes[FONT_CACHE_KEY].newValue
+    cachedFonts = Array.isArray(next) ? (next as CachedLocalFont[]) : []
+    loadMappingsForHost(location.hostname).then(mappings => apply(mappings)).catch(() => {})
 })
 
 chrome.runtime.onMessage.addListener(
