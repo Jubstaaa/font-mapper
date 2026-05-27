@@ -1,4 +1,4 @@
-import { STORAGE_KEY, loadAllMappings } from '@/lib/chrome-storage'
+import { STORAGE_KEY, loadAllMappings, migrateMappingsToSync } from '@/lib/chrome-storage'
 
 const BADGE_COLOR = '#242424'
 
@@ -6,6 +6,7 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
     if (reason === 'install') {
         chrome.tabs.create({ url: chrome.runtime.getURL('options.html') })
     }
+    void migrateMappingsToSync().then(refreshAllBadges).catch(() => {})
 })
 
 function isHttpUrl(url: string | undefined): url is string {
@@ -54,15 +55,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 })
 
 chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local') return
+    if (area !== 'sync' && area !== 'local') return
     if (!(STORAGE_KEY in changes)) return
     void refreshAllBadges()
 })
 
 chrome.runtime.onStartup.addListener(() => {
-    void refreshAllBadges()
-})
-
-chrome.runtime.onInstalled.addListener(() => {
-    void refreshAllBadges()
+    void migrateMappingsToSync().then(refreshAllBadges).catch(() => {})
 })
