@@ -4,7 +4,7 @@ const BADGE_COLOR = '#242424'
 
 chrome.runtime.onInstalled.addListener(({ reason }) => {
     if (reason === 'install') {
-        chrome.tabs.create({ url: chrome.runtime.getURL('options.html?welcome=1') })
+        chrome.tabs.create({ url: chrome.runtime.getURL('options.html') })
     }
 })
 
