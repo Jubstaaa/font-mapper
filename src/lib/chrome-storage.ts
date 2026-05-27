@@ -22,6 +22,8 @@ export interface FontMapping {
     name: string
     id?: string
     scale?: number
+    bold?: boolean
+    italic?: boolean
 }
 
 export type FontMap = Record<string, FontMapping>
@@ -43,10 +45,14 @@ function normalizeMappings(raw: unknown): FontMap {
             const scale = typeof v.scale === 'number' && Number.isFinite(v.scale) && v.scale > 0 && v.scale !== 1
                 ? v.scale
                 : undefined
+            const bold = v.bold === true ? true : undefined
+            const italic = v.italic === true ? true : undefined
             out[source] = {
                 name: v.name,
                 id: typeof v.id === 'string' && v.id ? v.id : undefined,
                 scale,
+                bold,
+                italic,
             }
         } else if (
             value
