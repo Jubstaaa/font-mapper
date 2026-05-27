@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import type { LocalFont } from '@/lib/chrome-fonts'
+import { getFamilyVariants, type LocalFont } from '@/lib/chrome-fonts'
 import { loadCachedLocalFonts } from '@/lib/chrome-storage'
 import {
     POPUP_PORT_NAME,
@@ -27,11 +27,26 @@ export function Popup() {
     const [localFonts, setLocalFonts] = useState<LocalFont[]>([])
     const [mappings, setMappings] = useState<FontMap>({})
 
+    const familyOptions = useMemo(() => {
+        const seen = new Set<string>()
+        const list: string[] = []
+        for (const f of localFonts) {
+            if (seen.has(f.family)) continue
+            seen.add(f.family)
+            list.push(f.family)
+        }
+        return list
+    }, [localFonts])
+
     const localFontIndex = useMemo(() => {
         const map = new Map<string, string>()
-        for (const f of localFonts) map.set(f.family, f.postscriptName)
+        for (const family of familyOptions) {
+            const variants = getFamilyVariants(family, localFonts)
+            const target = variants.regular
+            if (target) map.set(family, target.postscriptName)
+        }
         return map
-    }, [localFonts])
+    }, [familyOptions, localFonts])
 
     const portRef = useRef<chrome.runtime.Port | null>(null)
     const saveTimerRef = useRef<number | null>(null)
@@ -89,6 +104,27 @@ export function Popup() {
             if (!current) return
             const nextMapping = { ...current, scale: scale === 1 ? undefined : scale }
             const next: FontMap = { ...mappings, [source]: nextMapping }
+            setMappings(next)
+            if (tabId != null) {
+                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
+            }
+            persistDebounced(hostname, next)
+        },
+        [mappings, hostname, tabId, persistDebounced],
+    )
+
+    const handleStyleChange = useCallback(
+        (source: string, style: { bold?: boolean; italic?: boolean }) => {
+            const current = mappings[source]
+            if (!current) return
+            const next: FontMap = {
+                ...mappings,
+                [source]: {
+                    ...current,
+                    bold: style.bold ? true : undefined,
+                    italic: style.italic ? true : undefined,
+                },
+            }
             setMappings(next)
             if (tabId != null) {
                 void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
@@ -270,17 +306,22 @@ export function Popup() {
                 {status === 'ready' && totalCount > 0 && (
                     <ScrollArea className="h-[420px]">
                         <ul className="flex flex-col gap-1.5 p-3">
-                            {usedFonts.map(font => (
-                                <FontMappingRow
-                                    key={font}
-                                    source={font}
-                                    mapping={mappings[font] ?? null}
-                                    options={localFonts.map(f => f.family)}
-                                    onChange={value => handleChange(font, value)}
-                                    onScaleChange={scale => handleScaleChange(font, scale)}
-                                    onHover={hovering => handleHover(font, hovering)}
-                                />
-                            ))}
+                            {usedFonts.map(font => {
+                                const mapping = mappings[font] ?? null
+                                return (
+                                    <FontMappingRow
+                                        key={font}
+                                        source={font}
+                                        mapping={mapping}
+                                        options={familyOptions}
+                                        variants={mapping ? getFamilyVariants(mapping.name, localFonts) : null}
+                                        onChange={value => handleChange(font, value)}
+                                        onScaleChange={scale => handleScaleChange(font, scale)}
+                                        onStyleChange={style => handleStyleChange(font, style)}
+                                        onHover={hovering => handleHover(font, hovering)}
+                                    />
+                                )
+                            })}
                         </ul>
                     </ScrollArea>
                 )}
