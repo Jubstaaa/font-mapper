@@ -13,7 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-import type { FontComboboxProps } from './popup.types'
+import type { FontComboboxProps } from './font-combobox.types'
 
 function escapeFontName(name: string): string {
     return name.replace(/'/g, "\\'")
