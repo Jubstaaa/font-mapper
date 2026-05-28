@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, Bold, ChevronDown, ChevronUp, Italic } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronUp } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -8,6 +8,7 @@ import { FontCombobox } from './font-combobox'
 import type { FontMappingRowProps } from './font-mapping-row.types'
 import { LabeledSlider } from './labeled-slider'
 import { MappingWarning, deriveMappingWarning } from './mapping-warning'
+import { StyleToggles } from './style-toggles'
 
 const SCALE_MIN = 0.5
 const SCALE_MAX = 2
@@ -115,47 +116,15 @@ export function FontMappingRow({
                         onReset={() => onScaleChange(SCALE_DEFAULT)}
                         inert={inert}
                     />
-                    <div className={cn('flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5', inertClass)}>
-                        <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                            Style
-                        </span>
-                        <div className="flex items-center gap-1">
-                            <button
-                                type="button"
-                                aria-label="Bold"
-                                aria-pressed={boldActive}
-                                disabled={!boldAvailable}
-                                title={boldAvailable ? 'Bold' : `No bold variant available for ${mapped}`}
-                                onClick={() => onStyleChange({ bold: !boldActive, italic: italicActive })}
-                                className={cn(
-                                    'flex size-6 items-center justify-center rounded-sm border text-foreground transition-colors',
-                                    boldActive
-                                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
-                                        : 'border-border bg-background hover:bg-accent',
-                                    !boldAvailable && 'pointer-events-none opacity-40',
-                                )}
-                            >
-                                <Bold className="size-3" />
-                            </button>
-                            <button
-                                type="button"
-                                aria-label="Italic"
-                                aria-pressed={italicActive}
-                                disabled={!italicAvailable}
-                                title={italicAvailable ? 'Italic' : `No italic variant available for ${mapped}`}
-                                onClick={() => onStyleChange({ bold: boldActive, italic: !italicActive })}
-                                className={cn(
-                                    'flex size-6 items-center justify-center rounded-sm border text-foreground transition-colors',
-                                    italicActive
-                                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
-                                        : 'border-border bg-background hover:bg-accent',
-                                    !italicAvailable && 'pointer-events-none opacity-40',
-                                )}
-                            >
-                                <Italic className="size-3" />
-                            </button>
-                        </div>
-                    </div>
+                    <StyleToggles
+                        boldActive={boldActive}
+                        italicActive={italicActive}
+                        boldAvailable={boldAvailable}
+                        italicAvailable={italicAvailable}
+                        mappedName={mapped}
+                        inert={inert}
+                        onChange={onStyleChange}
+                    />
                     <button
                         type="button"
                         aria-expanded={advancedOpen}
