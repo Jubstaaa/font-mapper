@@ -103,29 +103,57 @@ bun run typecheck  # tsc -b --noEmit
 | Build        | Vite, [@crxjs/vite-plugin](https://crxjs.dev), Bun               |
 | UI           | React 19, TypeScript, Tailwind CSS v4                            |
 | Components   | shadcn/ui (new-york), Radix UI, cmdk, lucide-react               |
-| Browser APIs | `chrome.storage`, `chrome.fontSettings`, `chrome.tabs`, MV3 ports |
+| Browser APIs | Local Font Access, `chrome.storage.sync/local`, `chrome.action`, `chrome.tabs`, MV3 service worker + ports |
 
 ## Project structure
 
+Flat per-feature folders. Each feature owns its component, types, and (when business logic exceeds the component) a colocated hooks file.
+
 ```
 src/
-├── content/
-│   └── content.ts            Font scanning, inline override walker, hover highlighting
+├── background/                       MV3 service worker
+│   ├── background.ts                 Entry — wires the two register fns
+│   ├── badge.ts                      Per-tab mapping count badge
+│   └── lifecycle.ts                  onInstalled / onStartup / migration trigger
+├── content/                          Injected into every page (document_start)
+│   ├── content.ts                    Entry — init + IPC + lifecycle listeners
+│   ├── content.types.ts              InlineSnapshot, OverrideState
+│   ├── font-chain.ts                 Pure parsers: parseFontFamilyChain, matchChain
+│   ├── element-override.ts           Apply / restore inline style per element + state
+│   ├── used-fonts.ts                 collectUsedFonts + chain/element caches
+│   ├── highlight.ts                  Hover-highlight CSS injection
+│   └── observers.ts                  MutationObserver + resize debouncer
+├── popup/                            Browser action UI
+│   ├── popup.tsx                     JSX wiring
+│   ├── popup.hooks.ts                usePopupController owns state + IPC
+│   ├── popup.types.ts
+│   ├── font-mapping-row.tsx          One mapping row (source → target + controls)
+│   ├── font-mapping-row.types.ts
+│   ├── labeled-slider.tsx            Reused by Scale + Line + Letter + Word
+│   ├── advanced-color.tsx            Native color picker with reset
+│   ├── style-toggles.tsx             Bold + Italic buttons
+│   ├── mapping-warning.tsx           Orphan / missing-target banner
+│   ├── font-combobox.tsx             Searchable combobox (cmdk + Radix Popover)
+│   └── font-combobox.types.ts
+├── options/                          Settings page (Local Font Access + backup)
+│   ├── options.tsx                   JSX wiring
+│   ├── options.hooks.ts              useFontAccess + useBackupActions
+│   └── options.types.ts
+├── hooks/
+│   └── use-debounced-commit.hooks.ts Shared draft + commit debounce
 ├── lib/
-│   ├── chrome-storage.ts     Per-domain mapping persistence
-│   ├── chrome-fonts.ts       Local font enumeration (chrome.fontSettings)
-│   ├── chrome-messaging.ts   Type-safe popup ↔ content script messages
-│   └── utils.ts              shadcn cn helper
-├── popup/
-│   ├── popup.tsx             Main React component
-│   ├── font-mapping-row.tsx  Single row (source font → combobox)
-│   └── font-combobox.tsx     Searchable combobox (cmdk + Radix Popover)
-├── components/ui/            shadcn primitives
-├── main.tsx                  React entry
-└── index.css                 Tailwind + design tokens
+│   ├── chrome-storage.ts             CRUD over chrome.storage.sync (with local fallback)
+│   ├── chrome-storage.types.ts       Shape definitions
+│   ├── chrome-storage-migration.ts   One-shot local → sync migration
+│   ├── chrome-fonts.ts               Local Font Access enumeration + variant picking
+│   ├── chrome-messaging.ts           Type-safe popup ↔ content messages
+│   └── utils.ts                      shadcn cn helper
+├── components/ui/                    shadcn primitives (slider, popover, tooltip, …)
+├── main.tsx                          Popup React entry
+└── index.css                         Tailwind + design tokens
 
-public/                       Manifest icons (16/32/48/128)
-store/                        Chrome Web Store assets (icon, screenshots)
+public/                               Manifest icons (16/32/48/128)
+store/                                Chrome Web Store assets + listing copy
 ```
 
 ## Privacy
