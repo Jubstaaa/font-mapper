@@ -1,296 +1,40 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, RefreshCw, RotateCcw, Type } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { getFamilyVariants, type LocalFont } from '@/lib/chrome-fonts'
-import {
-    FONT_CACHE_VERSION,
-    loadCachedLocalFonts,
-    loadCachedLocalFontsVersion,
-    loadMappingsForHost,
-    saveMappingsForHost,
-    type FontMap,
-} from '@/lib/chrome-storage'
-import {
-    POPUP_PORT_NAME,
-    sendToTab,
-    type ApplyMappingsResponse,
-    type GetUsedFontsResponse,
-    type PortMessage,
-} from '@/lib/chrome-messaging'
+import { getFamilyVariants } from '@/lib/chrome-fonts'
 
 import { FontMappingRow } from './font-mapping-row'
-import type { PopupStatus } from './popup.types'
+import { usePopupController } from './popup.hooks'
 
 export function Popup() {
-    const [status, setStatus] = useState<PopupStatus>('loading')
-    const [tabId, setTabId] = useState<number | null>(null)
-    const [hostname, setHostname] = useState('')
-    const [usedFonts, setUsedFonts] = useState<string[]>([])
-    const [localFonts, setLocalFonts] = useState<LocalFont[]>([])
-    const [mappings, setMappings] = useState<FontMap>({})
-    const [cacheStale, setCacheStale] = useState(false)
-
-    const familyOptions = useMemo(() => {
-        const seen = new Set<string>()
-        const list: string[] = []
-        for (const f of localFonts) {
-            if (seen.has(f.family)) continue
-            seen.add(f.family)
-            list.push(f.family)
-        }
-        return list
-    }, [localFonts])
-
-    const localFontIndex = useMemo(() => {
-        const map = new Map<string, string>()
-        for (const family of familyOptions) {
-            const variants = getFamilyVariants(family, localFonts)
-            const target = variants.regular
-            if (target) map.set(family, target.postscriptName)
-        }
-        return map
-    }, [familyOptions, localFonts])
-
-    const portRef = useRef<chrome.runtime.Port | null>(null)
-    const saveTimerRef = useRef<number | null>(null)
-
-    const mappedCount = useMemo(() => Object.keys(mappings).length, [mappings])
-    const totalCount = usedFonts.length
-
-    const usedFontsSet = useMemo(() => new Set(usedFonts), [usedFonts])
-
-    const allSources = useMemo(() => {
-        const orphans = Object.keys(mappings)
-            .filter(k => !usedFontsSet.has(k))
-            .sort((a, b) => a.localeCompare(b))
-        return [...usedFonts, ...orphans]
-    }, [usedFonts, mappings, usedFontsSet])
-
-    const persistDebounced = useCallback(
-        (host: string, next: FontMap) => {
-            if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current)
-            saveTimerRef.current = window.setTimeout(() => {
-                void saveMappingsForHost(host, next)
-            }, 200)
-        },
-        [],
-    )
-
-    const persistNow = useCallback(
-        async (host: string, next: FontMap) => {
-            if (saveTimerRef.current != null) {
-                window.clearTimeout(saveTimerRef.current)
-                saveTimerRef.current = null
-            }
-            await saveMappingsForHost(host, next)
-        },
-        [],
-    )
-
-    const handleChange = useCallback(
-        async (source: string, target: string | null) => {
-            const next: FontMap = { ...mappings }
-            if (target === null) {
-                delete next[source]
-            } else {
-                const psName = localFontIndex.get(target)
-                const prevScale = next[source]?.scale
-                next[source] = {
-                    name: target,
-                    ...(psName ? { id: psName } : {}),
-                    ...(prevScale ? { scale: prevScale } : {}),
-                }
-            }
-            setMappings(next)
-            await persistNow(hostname, next)
-            if (tabId != null) {
-                await sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
-            }
-        },
-        [mappings, hostname, tabId, localFontIndex, persistNow],
-    )
-
-    const handleScaleChange = useCallback(
-        (source: string, scale: number) => {
-            const current = mappings[source]
-            if (!current) return
-            const nextMapping = { ...current, scale: scale === 1 ? undefined : scale }
-            const next: FontMap = { ...mappings, [source]: nextMapping }
-            setMappings(next)
-            if (tabId != null) {
-                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
-            }
-            persistDebounced(hostname, next)
-        },
-        [mappings, hostname, tabId, persistDebounced],
-    )
-
-    const handleStyleChange = useCallback(
-        (source: string, style: { bold?: boolean; italic?: boolean }) => {
-            const current = mappings[source]
-            if (!current) return
-            const next: FontMap = {
-                ...mappings,
-                [source]: {
-                    ...current,
-                    bold: style.bold ? true : undefined,
-                    italic: style.italic ? true : undefined,
-                },
-            }
-            setMappings(next)
-            if (tabId != null) {
-                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
-            }
-            persistDebounced(hostname, next)
-        },
-        [mappings, hostname, tabId, persistDebounced],
-    )
-
-    const applyMappingUpdate = useCallback(
-        (source: string, patch: Partial<typeof mappings[string]>) => {
-            const current = mappings[source]
-            if (!current) return
-            const next: FontMap = { ...mappings, [source]: { ...current, ...patch } }
-            setMappings(next)
-            if (tabId != null) {
-                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
-            }
-            persistDebounced(hostname, next)
-        },
-        [mappings, hostname, tabId, persistDebounced],
-    )
-
-    const handleLineHeightChange = useCallback(
-        (source: string, value: number | undefined) => {
-            applyMappingUpdate(source, { lineHeight: value })
-        },
-        [applyMappingUpdate],
-    )
-
-    const handleLetterSpacingChange = useCallback(
-        (source: string, value: number | undefined) => {
-            applyMappingUpdate(source, { letterSpacing: value })
-        },
-        [applyMappingUpdate],
-    )
-
-    const handleWordSpacingChange = useCallback(
-        (source: string, value: number | undefined) => {
-            applyMappingUpdate(source, { wordSpacing: value })
-        },
-        [applyMappingUpdate],
-    )
-
-    const handleColorChange = useCallback(
-        (source: string, value: string | undefined) => {
-            applyMappingUpdate(source, { color: value })
-        },
-        [applyMappingUpdate],
-    )
-
-    const handleHover = useCallback((source: string, hovering: boolean) => {
-        const port = portRef.current
-        if (!port) return
-        try {
-            const message: PortMessage = hovering
-                ? { type: 'HIGHLIGHT_FONT', font: source }
-                : { type: 'CLEAR_HIGHLIGHT' }
-            port.postMessage(message)
-        } catch {}
-    }, [])
-
-    const handleReset = useCallback(async () => {
-        setMappings({})
-        await persistNow(hostname, {})
-        if (tabId != null) {
-            await sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: {} })
-        }
-    }, [hostname, tabId, persistNow])
-
-    const handleReload = useCallback(() => {
-        if (tabId != null) chrome.tabs.reload(tabId)
-        window.close()
-    }, [tabId])
-
-    useEffect(() => {
-        let cancelled = false
-        ;(async () => {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-
-            if (!tab?.id || !tab.url || !/^https?:/.test(tab.url)) {
-                if (!cancelled) setStatus('restricted')
-                return
-            }
-
-            const fonts = await loadCachedLocalFonts()
-            if (cancelled) return
-
-            if (!fonts.length) {
-                setStatus('permission-required')
-                return
-            }
-
-            const cachedVersion = await loadCachedLocalFontsVersion()
-            if (cancelled) return
-            setCacheStale(cachedVersion < FONT_CACHE_VERSION)
-
-            const response = await sendToTab<GetUsedFontsResponse>(tab.id, { type: 'GET_USED_FONTS' })
-            if (cancelled) return
-
-            const host = response?.hostname || new URL(tab.url).hostname
-            const saved = await loadMappingsForHost(host)
-            if (cancelled) return
-
-            setTabId(tab.id)
-            setHostname(host)
-            setLocalFonts(fonts)
-            setMappings(saved)
-
-            if (!response) {
-                setStatus('no-script')
-                return
-            }
-
-            setUsedFonts(response.fonts || [])
-            setStatus('ready')
-        })()
-        return () => {
-            cancelled = true
-        }
-    }, [])
-
-    const handleOpenOptions = useCallback(() => {
-        chrome.runtime.openOptionsPage()
-        window.close()
-    }, [])
-
-    const handleRefreshFonts = useCallback(() => {
-        chrome.tabs.create({ url: chrome.runtime.getURL('options.html?refresh=1') })
-        window.close()
-    }, [])
-
-    useEffect(() => {
-        if (tabId == null) return
-        try {
-            const port = chrome.tabs.connect(tabId, { name: POPUP_PORT_NAME })
-            portRef.current = port
-            port.onDisconnect.addListener(() => {
-                portRef.current = null
-            })
-            return () => {
-                try {
-                    port.disconnect()
-                } catch {}
-                portRef.current = null
-            }
-        } catch {
-            return
-        }
-    }, [tabId])
+    const {
+        status,
+        hostname,
+        localFonts,
+        mappings,
+        cacheStale,
+        familyOptions,
+        localFontIndex,
+        mappedCount,
+        totalCount,
+        usedFontsSet,
+        allSources,
+        handleChange,
+        handleScaleChange,
+        handleStyleChange,
+        handleLineHeightChange,
+        handleLetterSpacingChange,
+        handleWordSpacingChange,
+        handleColorChange,
+        handleHover,
+        handleReset,
+        handleReload,
+        handleOpenOptions,
+        handleRefreshFonts,
+    } = usePopupController()
 
     return (
         <div className="flex flex-col">
