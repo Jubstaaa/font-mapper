@@ -35,12 +35,13 @@ Built for people who care about typography, accessibility, or just don't like ho
 ## Features
 
 - **Per-domain mapping** — different replacements for different sites, applied automatically
+- **Cross-device sync** — mappings follow your Chrome profile to every device signed in to the same Google account, no export/import needed
 - **Searchable font picker** — type to filter through every font on your machine; each option previews in its own typeface
 - **Per-mapping typography** — tweak scale, bold/italic, line-height, letter-spacing, word-spacing, and text color for each remapped family
 - **Hover to identify** — hover any detected font in the popup and every element using it gets highlighted on the page
 - **Instant preview** — changes apply in real time, no reload
 - **One-click reset** — wipe all mappings for a site
-- **Zero data collection** — everything stays local, no network requests, no analytics, no accounts
+- **Zero data collection** — no FontMapper servers, no analytics, no accounts; mappings ride Chrome's encrypted profile sync
 
 <p align="center">
   <img src="store/screenshot-popup-1280x800.jpg" alt="FontMapper popup detecting fonts on a GitHub PR page, with per-mapping scale and bold/italic toggles" width="900" />
@@ -60,7 +61,7 @@ el.style.setProperty('font-family', '"Product Sans"', 'important')
 
 This intercepts named families (Arial, Sohne), generic keywords (`sans-serif`, `serif`, `monospace`), and system aliases (`-apple-system`, `system-ui`) — anywhere a page's font stack falls back, your mapping wins. A `MutationObserver` keeps it up to date as the page injects new content.
 
-Per-domain preferences are persisted via `chrome.storage.local` — never sent anywhere.
+Per-domain preferences are persisted via `chrome.storage.sync` so they follow your Chrome profile across devices. There are no FontMapper servers — Google's encrypted profile sync is the only network path.
 
 ## Install
 
