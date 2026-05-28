@@ -1,14 +1,17 @@
+import type {
+    CachedLocalFont,
+    ExportPayload,
+    FontMap,
+    FontMapping,
+    FontMapStore,
+} from './chrome-storage.types'
+
+export type { CachedLocalFont, ExportPayload, FontMap, FontMapping, FontMapStore } from './chrome-storage.types'
+
 export const STORAGE_KEY = 'fontMapperMappings'
 export const FONT_CACHE_KEY = 'fontMapperLocalFonts'
 export const FONT_CACHE_VERSION_KEY = 'fontMapperLocalFontsVersion'
 export const FONT_CACHE_VERSION = 2
-
-export interface CachedLocalFont {
-    family: string
-    fullName: string
-    postscriptName: string
-    style: string
-}
 
 export async function loadCachedLocalFonts(): Promise<CachedLocalFont[]> {
     const result = await chrome.storage.local.get(FONT_CACHE_KEY)
@@ -29,18 +32,6 @@ export async function saveCachedLocalFonts(fonts: CachedLocalFont[]): Promise<vo
     })
 }
 
-export interface FontMapping {
-    name: string
-    id?: string
-    scale?: number
-    bold?: boolean
-    italic?: boolean
-    lineHeight?: number
-    letterSpacing?: number
-    wordSpacing?: number
-    color?: string
-}
-
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/
 
 function normalizeOptionalNumber(value: unknown, min: number, max: number): number | undefined {
@@ -53,9 +44,6 @@ function normalizeOptionalColor(value: unknown): string | undefined {
     if (typeof value !== 'string') return undefined
     return HEX_COLOR_RE.test(value) ? value : undefined
 }
-
-export type FontMap = Record<string, FontMapping>
-export type FontMapStore = Record<string, FontMap>
 
 function normalizeMappings(raw: unknown): FontMap {
     if (!raw || typeof raw !== 'object') return {}
@@ -75,20 +63,16 @@ function normalizeMappings(raw: unknown): FontMap {
                 : undefined
             const bold = v.bold === true ? true : undefined
             const italic = v.italic === true ? true : undefined
-            const lineHeight = normalizeOptionalNumber(v.lineHeight, 0.5, 5)
-            const letterSpacing = normalizeOptionalNumber(v.letterSpacing, -0.5, 1)
-            const wordSpacing = normalizeOptionalNumber(v.wordSpacing, -0.5, 2)
-            const color = normalizeOptionalColor(v.color)
             out[source] = {
                 name: v.name,
                 id: typeof v.id === 'string' && v.id ? v.id : undefined,
                 scale,
                 bold,
                 italic,
-                lineHeight,
-                letterSpacing,
-                wordSpacing,
-                color,
+                lineHeight: normalizeOptionalNumber(v.lineHeight, 0.5, 5),
+                letterSpacing: normalizeOptionalNumber(v.letterSpacing, -0.5, 1),
+                wordSpacing: normalizeOptionalNumber(v.wordSpacing, -0.5, 2),
+                color: normalizeOptionalColor(v.color),
             }
         } else if (
             value
@@ -102,7 +86,7 @@ function normalizeMappings(raw: unknown): FontMap {
     return out
 }
 
-function normalizeStore(raw: unknown): FontMapStore {
+export function normalizeStore(raw: unknown): FontMapStore {
     if (!raw || typeof raw !== 'object') return {}
     const out: FontMapStore = {}
     for (const [host, value] of Object.entries(raw as Record<string, unknown>)) {
@@ -116,22 +100,6 @@ async function readRawMappings(): Promise<unknown> {
     if (sync[STORAGE_KEY] !== undefined) return sync[STORAGE_KEY]
     const local = await chrome.storage.local.get(STORAGE_KEY)
     return local[STORAGE_KEY]
-}
-
-export async function migrateMappingsToSync(): Promise<void> {
-    const local = (await chrome.storage.local.get(STORAGE_KEY))[STORAGE_KEY]
-    if (!local || typeof local !== 'object') return
-    const sync = (await chrome.storage.sync.get(STORAGE_KEY))[STORAGE_KEY]
-    const merged: FontMapStore = normalizeStore({
-        ...(local as Record<string, unknown>),
-        ...((sync as Record<string, unknown>) ?? {}),
-    })
-    try {
-        await chrome.storage.sync.set({ [STORAGE_KEY]: merged })
-        await chrome.storage.local.remove(STORAGE_KEY)
-    } catch (err) {
-        console.warn('FontMapper: sync migration failed, keeping local copy', err)
-    }
 }
 
 async function writeRawMappings(store: FontMapStore): Promise<void> {
@@ -161,12 +129,6 @@ export async function saveMappingsForHost(hostname: string, mappings: FontMap): 
         all[hostname] = mappings
     }
     await writeRawMappings(all)
-}
-
-export interface ExportPayload {
-    version: 1
-    exportedAt: string
-    mappings: FontMapStore
 }
 
 export async function exportAllSettings(): Promise<ExportPayload> {
@@ -235,3 +197,5 @@ export function onMappingsChanged(callback: (store: FontMapStore) => void): () =
     chrome.storage.onChanged.addListener(listener)
     return () => chrome.storage.onChanged.removeListener(listener)
 }
+
+export { migrateMappingsToSync } from './chrome-storage-migration'
