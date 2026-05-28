@@ -153,7 +153,7 @@ src/
 └── index.css                         Tailwind + design tokens
 
 public/                               Manifest icons (16/32/48/128)
-store/                                Chrome Web Store assets + listing copy
+store/                                Chrome Web Store assets (icon, screenshots)
 ```
 
 ## Privacy
