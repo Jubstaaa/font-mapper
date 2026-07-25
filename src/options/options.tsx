@@ -9,7 +9,7 @@ import { useBackupActions, useFontAccess } from './options.hooks'
 import '@/index.css'
 
 function Options() {
-    const { status, fontCount, errorMessage, handleGrant } = useFontAccess()
+    const { status, fontCount, familyCount, errorMessage, handleGrant } = useFontAccess()
     const { backupMessage, importInputRef, handleExport, handleImportFile, handleReset } = useBackupActions()
 
     return (
@@ -66,6 +66,22 @@ function Options() {
                         </div>
                     )}
 
+                    {status === 'refresh-pending' && (
+                        <div className="flex flex-col items-center gap-4 text-center">
+                            <RefreshCw className="size-8 text-primary" />
+                            <h2 className="text-base font-medium">Rescan your fonts</h2>
+                            <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                                Chrome hands over your font list only right after a click, so press the button below to
+                                rescan. <span className="font-medium text-foreground">{fontCount}</span> styles are
+                                cached right now.
+                            </p>
+                            <Button onClick={handleGrant} size="lg" className="mt-2">
+                                <RefreshCw className="mr-1.5 size-4" />
+                                Rescan fonts
+                            </Button>
+                        </div>
+                    )}
+
                     {status === 'granted' && (
                         <div className="flex flex-col items-center gap-4 text-center">
                             <div className="flex size-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -73,13 +89,25 @@ function Options() {
                             </div>
                             <h2 className="text-base font-medium">You're all set</h2>
                             <p className="text-sm text-muted-foreground">
-                                <span className="font-medium text-foreground">{fontCount}</span> local fonts cached.
-                                Open the FontMapper popup on any site to start mapping.
+                                <span className="font-medium text-foreground">{familyCount}</span> font{' '}
+                                {familyCount === 1 ? 'family' : 'families'} (
+                                <span className="font-medium text-foreground">{fontCount}</span> styles) cached. Open the
+                                FontMapper popup on any site to start mapping.
                             </p>
                             <Button onClick={handleGrant} variant="outline" size="sm">
                                 <RefreshCw className="mr-1.5 size-3.5" />
                                 Refresh font list
                             </Button>
+                            {errorMessage && (
+                                <code className="rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+                                    {errorMessage}
+                                </code>
+                            )}
+                            <p className="max-w-sm text-[11px] leading-relaxed text-muted-foreground">
+                                Fonts missing? Chrome scans your system only once per browser session — quit Chrome
+                                completely, reopen it, then refresh here. Fonts handled by a font manager need to be
+                                active before Chrome starts.
+                            </p>
                         </div>
                     )}
 

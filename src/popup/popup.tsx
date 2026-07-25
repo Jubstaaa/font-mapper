@@ -182,7 +182,7 @@ export function Popup() {
                         className="flex w-full items-center justify-center gap-1 border-t border-border/60 bg-muted/30 py-1.5 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     >
                         <RefreshCw className="size-2.5" />
-                        Refresh local fonts ({localFonts.length} cached)
+                        Refresh local fonts ({familyOptions.length} families · {localFonts.length} styles)
                     </button>
                 </>
             )}

@@ -71,6 +71,10 @@ export async function listLocalFonts(): Promise<LocalFont[]> {
         })
 }
 
+export function countFamilies(fonts: Pick<LocalFont, 'family'>[]): number {
+    return new Set(fonts.map(f => f.family)).size
+}
+
 export interface LocalFontFamilyVariants {
     regular: LocalFont | null
     bold: LocalFont | null

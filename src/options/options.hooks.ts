@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { isLocalFontsApiAvailable, listLocalFonts } from '@/lib/chrome-fonts'
+import { countFamilies, isLocalFontsApiAvailable, listLocalFonts } from '@/lib/chrome-fonts'
 import {
     clearAllSettings,
     exportAllSettings,
@@ -11,23 +11,37 @@ import {
 
 import type { BackupMessage, FontAccessStatus } from './options.types'
 
+function describeFontError(err: unknown): string {
+    if (err instanceof DOMException && err.name === 'SecurityError') {
+        return /activation/i.test(err.message)
+            ? 'Chrome only reads local fonts right after a click. Use the button above.'
+            : err.message
+    }
+    if (err instanceof Error && err.message === 'LOCAL_FONTS_API_UNAVAILABLE') {
+        return 'This browser does not expose the Local Font Access API.'
+    }
+    return err instanceof Error ? err.message : 'Unknown error'
+}
+
 export function useFontAccess() {
     const [status, setStatus] = useState<FontAccessStatus>('checking')
     const [fontCount, setFontCount] = useState(0)
+    const [familyCount, setFamilyCount] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     const handleGrant = useCallback(async () => {
-        const isRefresh = status === 'granted'
+        const isRefresh = status === 'granted' || status === 'refresh-pending'
         if (!isRefresh) setStatus('loading')
         setErrorMessage(null)
         try {
             const fonts = await listLocalFonts()
             await saveCachedLocalFonts(fonts)
             setFontCount(fonts.length)
-            if (!isRefresh) setStatus('granted')
+            setFamilyCount(countFamilies(fonts))
+            setStatus('granted')
         } catch (err) {
-            setStatus('denied')
-            setErrorMessage(err instanceof Error ? err.message : 'Unknown error')
+            setStatus(isRefresh ? 'granted' : 'denied')
+            setErrorMessage(describeFontError(err))
         }
     }, [status])
 
@@ -36,22 +50,19 @@ export function useFontAccess() {
             setStatus('unsupported')
             return
         }
-        const autoRefresh = new URLSearchParams(window.location.search).get('refresh') === '1'
-        if (autoRefresh) {
-            void handleGrant()
-            return
-        }
-        loadCachedLocalFonts().then(cached => {
-            if (cached.length) {
-                setFontCount(cached.length)
-                setStatus('granted')
-            } else {
+        const wantsRefresh = new URLSearchParams(window.location.search).get('refresh') === '1'
+        void loadCachedLocalFonts().then(cached => {
+            setFontCount(cached.length)
+            setFamilyCount(countFamilies(cached))
+            if (!cached.length) {
                 setStatus('idle')
+                return
             }
+            setStatus(wantsRefresh ? 'refresh-pending' : 'granted')
         })
-    }, [handleGrant])
+    }, [])
 
-    return { status, fontCount, errorMessage, handleGrant }
+    return { status, fontCount, familyCount, errorMessage, handleGrant }
 }
 
 export function useBackupActions() {
