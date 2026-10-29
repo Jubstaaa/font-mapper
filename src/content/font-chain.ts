@@ -23,6 +23,8 @@ export function parseFontFamilyChain(value: string): string[] {
             const t = buf.trim()
             if (t) parts.push(t)
             buf = ''
+        } else if (/\s/.test(ch)) {
+            if (!buf.endsWith(' ')) buf += ' '
         } else {
             buf += ch
         }

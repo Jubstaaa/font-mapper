@@ -40,7 +40,7 @@ describe('parseFontFamilyChain', () => {
         expect(parseFontFamilyChain('"Foo, Bar')).toEqual(['Foo, Bar'])
     })
 
-    it.fails('collapses whitespace runs in unquoted names, per CSS', () => {
+    it('collapses whitespace runs in unquoted names, per CSS', () => {
         expect(parseFontFamilyChain('Times   New  Roman')).toEqual(['Times New Roman'])
     })
 })

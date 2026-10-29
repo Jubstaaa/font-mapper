@@ -29,7 +29,7 @@ describe('quoteFamily', () => {
         expect(quoteFamily('-apple-system')).toBe('"-apple-system"')
     })
 
-    it.fails('quotes CSS-wide keywords (unquoted `inherit` is not a family name)', () => {
+    it('quotes CSS-wide keywords (unquoted `inherit` is not a family name)', () => {
         expect(quoteFamily('inherit')).toBe('"inherit"')
     })
 })
