@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { useDebouncedTimer } from '@/hooks/use-debounced-commit.hooks'
 import { getFamilyVariants, type LocalFont } from '@/lib/chrome-fonts'
 import {
     FONT_CACHE_VERSION,
@@ -32,7 +33,7 @@ export function usePopupController() {
     const [cacheStale, setCacheStale] = useState(false)
 
     const portRef = useRef<chrome.runtime.Port | null>(null)
-    const saveTimerRef = useRef<number | null>(null)
+    const { schedule: schedulePersist, cancel: cancelPersist } = useDebouncedTimer(PERSIST_DEBOUNCE_MS)
 
     const familyOptions = useMemo(() => {
         const seen = new Set<string>()
@@ -65,20 +66,20 @@ export function usePopupController() {
         return [...usedFonts, ...orphans]
     }, [usedFonts, mappings, usedFontsSet])
 
-    const persistDebounced = useCallback((host: string, next: FontMap) => {
-        if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current)
-        saveTimerRef.current = window.setTimeout(() => {
-            void saveMappingsForHost(host, next)
-        }, PERSIST_DEBOUNCE_MS)
-    }, [])
+    const persistDebounced = useCallback(
+        (host: string, next: FontMap) => {
+            schedulePersist(() => void saveMappingsForHost(host, next))
+        },
+        [schedulePersist],
+    )
 
-    const persistNow = useCallback(async (host: string, next: FontMap) => {
-        if (saveTimerRef.current != null) {
-            window.clearTimeout(saveTimerRef.current)
-            saveTimerRef.current = null
-        }
-        await saveMappingsForHost(host, next)
-    }, [])
+    const persistNow = useCallback(
+        async (host: string, next: FontMap) => {
+            cancelPersist()
+            await saveMappingsForHost(host, next)
+        },
+        [cancelPersist],
+    )
 
     const sendApply = useCallback(
         (next: FontMap) => {

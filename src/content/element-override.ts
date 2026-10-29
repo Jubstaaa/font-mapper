@@ -1,8 +1,9 @@
-import { getFamilyVariants } from '@/lib/chrome-fonts'
+import { getFamilyVariants, isMappingInstalledLocally } from '@/lib/chrome-fonts'
 import type { CachedLocalFont, FontMap, FontMapping } from '@/lib/chrome-storage'
+import { quoteFamily } from '@/lib/font-family'
 
 import type { InlineSnapshot, OverrideState } from './content.types'
-import { matchChain, parseFontFamilyChain, quoteFamily } from './font-chain'
+import { matchChain, parseFontFamilyChain } from './font-chain'
 
 const MAPPED_ATTR = 'data-fm-mapped'
 
@@ -42,17 +43,6 @@ function restoreInline(el: HTMLElement, prop: string, snap: InlineSnapshot): voi
     } else {
         el.style.removeProperty(prop)
     }
-}
-
-function isMappingApplicable(mapping: FontMapping): boolean {
-    if (!cachedFonts.length) return false
-    const family = mapping.name
-    const psName = mapping.id
-    return cachedFonts.some(f =>
-        f.family === family
-        || (psName ? f.postscriptName === psName : false)
-        || f.fullName === family,
-    )
 }
 
 function resolveLocalName(mapping: FontMapping): string {
@@ -112,7 +102,7 @@ export function applyToElement(el: HTMLElement): void {
     const chain = parseFontFamilyChain(family)
     const match = matchChain(chain, lookup)
     if (!match) return
-    if (!isMappingApplicable(match.mapping)) return
+    if (!isMappingInstalledLocally(match.mapping, cachedFonts)) return
 
     const parsedSize = parseFloat(cs.fontSize)
     const originalSizePx = Number.isFinite(parsedSize) ? parsedSize : 16

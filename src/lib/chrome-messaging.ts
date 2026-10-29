@@ -38,10 +38,5 @@ export type ExtensionMessage =
 export type PortMessage = HighlightFontMessage | ClearHighlightMessage
 
 export function sendToTab<TResponse>(tabId: number, message: ExtensionMessage): Promise<TResponse | undefined> {
-    return new Promise(resolve => {
-        chrome.tabs.sendMessage(tabId, message, (response: TResponse) => {
-            void chrome.runtime.lastError
-            resolve(response)
-        })
-    })
+    return chrome.tabs.sendMessage<ExtensionMessage, TResponse>(tabId, message).catch(() => undefined)
 }

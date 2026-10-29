@@ -140,13 +140,14 @@ src/
 │   ├── options.hooks.ts              useFontAccess + useBackupActions
 │   └── options.types.ts
 ├── hooks/
-│   └── use-debounced-commit.hooks.ts Shared draft + commit debounce
+│   └── use-debounced-commit.hooks.ts Shared debounce timer + draft/commit debounce
 ├── lib/
 │   ├── chrome-storage.ts             CRUD over chrome.storage.sync (with local fallback)
 │   ├── chrome-storage.types.ts       Shape definitions
 │   ├── chrome-storage-migration.ts   One-shot local → sync migration
 │   ├── chrome-fonts.ts               Local Font Access enumeration + variant picking
 │   ├── chrome-messaging.ts           Type-safe popup ↔ content messages
+│   ├── font-family.ts                CSS font-family quoting + generic keywords
 │   └── utils.ts                      shadcn cn helper
 ├── components/ui/                    shadcn primitives (slider, popover, tooltip, …)
 ├── main.tsx                          Popup React entry

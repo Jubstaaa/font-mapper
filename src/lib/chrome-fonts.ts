@@ -1,3 +1,5 @@
+import type { FontMapping } from './chrome-storage.types'
+
 export interface LocalFont {
     family: string
     fullName: string
@@ -73,6 +75,17 @@ export async function listLocalFonts(): Promise<LocalFont[]> {
 
 export function countFamilies(fonts: Pick<LocalFont, 'family'>[]): number {
     return new Set(fonts.map(f => f.family)).size
+}
+
+export function isMappingInstalledLocally(
+    mapping: Pick<FontMapping, 'name' | 'id'>,
+    fonts: Pick<LocalFont, 'family' | 'fullName' | 'postscriptName'>[],
+): boolean {
+    return fonts.some(f =>
+        f.family === mapping.name
+        || (mapping.id ? f.postscriptName === mapping.id : false)
+        || f.fullName === mapping.name,
+    )
 }
 
 export interface LocalFontFamilyVariants {
