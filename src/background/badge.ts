@@ -1,11 +1,5 @@
-import {
-    FONT_CACHE_KEY,
-    STORAGE_KEY,
-    loadAllMappings,
-    loadCachedLocalFonts,
-    type CachedLocalFont,
-    type FontMapping,
-} from '@/lib/chrome-storage'
+import { isMappingInstalledLocally } from '@/lib/chrome-fonts'
+import { FONT_CACHE_KEY, STORAGE_KEY, loadAllMappings, loadCachedLocalFonts } from '@/lib/chrome-storage'
 
 const BADGE_COLOR = '#242424'
 
@@ -19,15 +13,6 @@ function hostnameOf(url: string): string | null {
     } catch {
         return null
     }
-}
-
-function isMappingInstalledLocally(mapping: FontMapping, fonts: CachedLocalFont[]): boolean {
-    if (!fonts.length) return false
-    return fonts.some(f =>
-        f.family === mapping.name
-        || (mapping.id !== undefined && f.postscriptName === mapping.id)
-        || f.fullName === mapping.name,
-    )
 }
 
 async function updateBadgeForTab(tabId: number, url: string | undefined): Promise<void> {

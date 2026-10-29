@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight, ChevronDown, ChevronUp } from 'lucide-react'
 
+import { quoteFamily } from '@/lib/font-family'
 import { cn } from '@/lib/utils'
 
 import { AdvancedColor } from './advanced-color'
@@ -29,10 +30,6 @@ const WORD_SP_MIN = -0.2
 const WORD_SP_MAX = 1
 const WORD_SP_STEP = 0.05
 const WORD_SP_DEFAULT = 0
-
-function escapeFontName(name: string): string {
-    return name.replace(/'/g, "\\'")
-}
 
 function rowClassName(warningKind: 'orphan' | 'missing' | null, mapped: boolean): string {
     if (warningKind === 'orphan') return 'border-border/40 bg-muted/30'
@@ -89,7 +86,7 @@ export function FontMappingRow({
                     <div
                         className="truncate text-left text-[13px] text-foreground"
                         title={source}
-                        style={{ fontFamily: `'${escapeFontName(source)}', sans-serif` }}
+                        style={{ fontFamily: `${quoteFamily(source)}, sans-serif` }}
                     >
                         {source}
                     </div>

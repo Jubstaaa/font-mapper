@@ -1,5 +1,7 @@
+import { GENERIC_KEYWORDS } from '@/lib/font-family'
+
 import { getOverrideState } from './element-override'
-import { GENERIC_KEYWORDS, parseFontFamilyChain, pickPickerName } from './font-chain'
+import { parseFontFamilyChain, pickPickerName } from './font-chain'
 
 const fontElementCache = new Map<string, WeakRef<Element>[]>()
 const chainCache = new Map<Element, string[]>()

@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+export interface UseDebouncedTimerResult {
+    schedule: (callback: () => void) => void
+    cancel: () => void
+}
+
 export interface UseDebouncedCommitResult<TValue> {
     draft: TValue
     setDraft: (value: TValue) => void
@@ -8,17 +13,8 @@ export interface UseDebouncedCommitResult<TValue> {
     cancel: () => void
 }
 
-export function useDebouncedCommit<TValue>(
-    persisted: TValue,
-    onCommit: (value: TValue) => void,
-    delay = 180,
-): UseDebouncedCommitResult<TValue> {
-    const [draft, setDraft] = useState(persisted)
+export function useDebouncedTimer(delay: number): UseDebouncedTimerResult {
     const timerRef = useRef<number | null>(null)
-
-    useEffect(() => {
-        setDraft(persisted)
-    }, [persisted])
 
     const cancel = useCallback(() => {
         if (timerRef.current != null) {
@@ -27,18 +23,40 @@ export function useDebouncedCommit<TValue>(
         }
     }, [])
 
+    const schedule = useCallback(
+        (callback: () => void) => {
+            cancel()
+            timerRef.current = window.setTimeout(() => {
+                timerRef.current = null
+                callback()
+            }, delay)
+        },
+        [delay, cancel],
+    )
+
+    return { schedule, cancel }
+}
+
+export function useDebouncedCommit<TValue>(
+    persisted: TValue,
+    onCommit: (value: TValue) => void,
+    delay = 180,
+): UseDebouncedCommitResult<TValue> {
+    const [draft, setDraft] = useState(persisted)
+    const { schedule, cancel } = useDebouncedTimer(delay)
+
+    useEffect(() => {
+        setDraft(persisted)
+    }, [persisted])
+
     useEffect(() => cancel, [cancel])
 
     const change = useCallback(
         (value: TValue) => {
             setDraft(value)
-            cancel()
-            timerRef.current = window.setTimeout(() => {
-                timerRef.current = null
-                onCommit(value)
-            }, delay)
+            schedule(() => onCommit(value))
         },
-        [onCommit, delay, cancel],
+        [onCommit, schedule],
     )
 
     const commit = useCallback(

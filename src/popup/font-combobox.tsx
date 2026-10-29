@@ -11,13 +11,10 @@ import {
     CommandList,
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { quoteFamily } from '@/lib/font-family'
 import { cn } from '@/lib/utils'
 
 import type { FontComboboxProps } from './font-combobox.types'
-
-function escapeFontName(name: string): string {
-    return name.replace(/'/g, "\\'")
-}
 
 export function FontCombobox({ value, options, placeholder = 'Map to local fontâ€¦', onSelect }: FontComboboxProps) {
     const [open, setOpen] = useState(false)
@@ -37,7 +34,7 @@ export function FontCombobox({ value, options, placeholder = 'Map to local fontâ
                     >
                         <span
                             className="min-w-0 flex-1 truncate text-left"
-                            style={value ? { fontFamily: `'${escapeFontName(value)}', sans-serif` } : undefined}
+                            style={value ? { fontFamily: `${quoteFamily(value)}, sans-serif` } : undefined}
                         >
                             {value || placeholder}
                         </span>
@@ -59,7 +56,7 @@ export function FontCombobox({ value, options, placeholder = 'Map to local fontâ
                                             setOpen(false)
                                         }}
                                         className="text-xs"
-                                        style={{ fontFamily: `'${escapeFontName(opt)}', sans-serif` }}
+                                        style={{ fontFamily: `${quoteFamily(opt)}, sans-serif` }}
                                     >
                                         <span className="min-w-0 flex-1 truncate">{opt}</span>
                                         <Check

@@ -1,23 +1,5 @@
 import type { FontMapping } from '@/lib/chrome-storage'
 
-export const GENERIC_KEYWORDS = new Set([
-    'sans-serif',
-    'serif',
-    'monospace',
-    'cursive',
-    'fantasy',
-    'math',
-    'system-ui',
-    'ui-sans-serif',
-    'ui-serif',
-    'ui-monospace',
-    'ui-rounded',
-    'emoji',
-    'fangsong',
-    '-apple-system',
-    'blinkmacsystemfont',
-])
-
 export const SKIP_KEYWORDS = new Set(['inherit', 'initial', 'unset', 'revert', 'revert-layer'])
 
 export function parseFontFamilyChain(value: string): string[] {
@@ -48,13 +30,6 @@ export function parseFontFamilyChain(value: string): string[] {
     const tail = buf.trim()
     if (tail) parts.push(tail)
     return parts
-}
-
-export function quoteFamily(name: string): string {
-    if (/^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name) && !GENERIC_KEYWORDS.has(name.toLowerCase())) {
-        return name
-    }
-    return `"${name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
 }
 
 export interface ChainMatch {
