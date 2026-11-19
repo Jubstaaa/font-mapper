@@ -24,7 +24,9 @@ function describeFontError(err: unknown): string {
 }
 
 export function useFontAccess() {
-    const [status, setStatus] = useState<FontAccessStatus>('checking')
+    const [status, setStatus] = useState<FontAccessStatus>(() =>
+        isLocalFontsApiAvailable() ? 'checking' : 'unsupported',
+    )
     const [fontCount, setFontCount] = useState(0)
     const [familyCount, setFamilyCount] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -46,10 +48,7 @@ export function useFontAccess() {
     }, [status])
 
     useEffect(() => {
-        if (!isLocalFontsApiAvailable()) {
-            setStatus('unsupported')
-            return
-        }
+        if (!isLocalFontsApiAvailable()) return
         const wantsRefresh = new URLSearchParams(window.location.search).get('refresh') === '1'
         void loadCachedLocalFonts().then(cached => {
             setFontCount(cached.length)

@@ -91,18 +91,27 @@ Then in Chrome:
 
 ```bash
 bun install
-bun run dev        # Vite dev server + HMR (dist/ auto-rebuilds)
-bun run build      # Production build → dist/
-bun run typecheck  # tsc -b --noEmit
+bun run dev           # Vite dev server + HMR (dist/ auto-rebuilds)
+bun run build         # Production build → dist/
+bun run typecheck     # tsc -b --noEmit (TypeScript 7)
+bun run lint          # ESLint
+bun run format        # Prettier (format:check in CI)
+bun run test          # Vitest
+bun run audit         # bun audit --audit-level=high
 ```
+
+CI runs audit, format check, lint, typecheck, tests and build on every pull request.
+
+`typescript` is aliased to `@typescript/typescript6` because typescript-eslint still needs the
+TypeScript 6 compiler API; `tsc` itself comes from `@typescript/native` (TypeScript 7).
 
 ## Tech stack
 
-| Layer        | Tools                                                            |
-| ------------ | ---------------------------------------------------------------- |
-| Build        | Vite, [@crxjs/vite-plugin](https://crxjs.dev), Bun               |
-| UI           | React 19, TypeScript, Tailwind CSS v4                            |
-| Components   | shadcn/ui (new-york), Radix UI, cmdk, lucide-react               |
+| Layer        | Tools                                                                                                      |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| Build        | Vite, [@crxjs/vite-plugin](https://crxjs.dev), Bun                                                         |
+| UI           | React 19, TypeScript, Tailwind CSS v4                                                                      |
+| Components   | shadcn/ui (new-york), Radix UI, cmdk, lucide-react                                                         |
 | Browser APIs | Local Font Access, `chrome.storage.sync/local`, `chrome.action`, `chrome.tabs`, MV3 service worker + ports |
 
 ## Project structure

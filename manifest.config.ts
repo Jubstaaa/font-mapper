@@ -1,5 +1,7 @@
 import { defineManifest } from '@crxjs/vite-plugin'
 
+import pkg from './package.json' with { type: 'json' }
+
 const icons = {
     '16': 'icon-16.png',
     '32': 'icon-32.png',
@@ -10,7 +12,7 @@ const icons = {
 export default defineManifest({
     manifest_version: 3,
     name: 'FontMapper – Local Fonts for Any Website',
-    version: '0.9.2',
+    version: pkg.version,
     description: 'Replace any website’s fonts with the fonts installed on your computer — per domain.',
     minimum_chrome_version: '103',
     permissions: ['activeTab', 'storage'],

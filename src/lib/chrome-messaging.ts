@@ -29,11 +29,7 @@ export interface ClearHighlightMessage {
     type: 'CLEAR_HIGHLIGHT'
 }
 
-export type ExtensionMessage =
-    | GetUsedFontsMessage
-    | ApplyMappingsMessage
-    | HighlightFontMessage
-    | ClearHighlightMessage
+export type ExtensionMessage = GetUsedFontsMessage | ApplyMappingsMessage | HighlightFontMessage | ClearHighlightMessage
 
 export type PortMessage = HighlightFontMessage | ClearHighlightMessage
 

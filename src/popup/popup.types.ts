@@ -1,6 +1,1 @@
-export type PopupStatus =
-    | 'loading'
-    | 'restricted'
-    | 'no-script'
-    | 'permission-required'
-    | 'ready'
+export type PopupStatus = 'loading' | 'restricted' | 'no-script' | 'permission-required' | 'ready'

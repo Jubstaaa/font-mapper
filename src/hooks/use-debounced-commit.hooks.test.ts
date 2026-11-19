@@ -123,10 +123,9 @@ describe('useDebouncedCommit', () => {
 
     it('resyncs the draft when the persisted value changes', () => {
         const onCommit = vi.fn()
-        const { result, rerender } = renderHook(
-            ({ persisted }) => useDebouncedCommit(persisted, onCommit),
-            { initialProps: { persisted: 1 } },
-        )
+        const { result, rerender } = renderHook(({ persisted }) => useDebouncedCommit(persisted, onCommit), {
+            initialProps: { persisted: 1 },
+        })
 
         act(() => result.current.setDraft(2))
         rerender({ persisted: 7 })

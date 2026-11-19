@@ -45,7 +45,9 @@ async function init(): Promise<void> {
         } else {
             scheduleWalk()
         }
-    } catch {}
+    } catch {
+        // Storage can be unavailable mid-update or on odd pages; the page must keep working untouched.
+    }
 }
 
 startObservers()
@@ -67,7 +69,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local' || !changes[FONT_CACHE_KEY]) return
     const next = changes[FONT_CACHE_KEY].newValue
     setCachedFonts(Array.isArray(next) ? (next as CachedLocalFont[]) : [])
-    void loadMappingsForHost(location.hostname).then(apply).catch(() => {})
+    void loadMappingsForHost(location.hostname)
+        .then(apply)
+        .catch(() => {})
 })
 
 chrome.runtime.onMessage.addListener(

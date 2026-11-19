@@ -6,8 +6,12 @@ import { matchChain, parseFontFamilyChain, pickPickerName } from './font-chain'
 
 describe('parseFontFamilyChain', () => {
     it('splits unquoted and quoted families', () => {
-        expect(parseFontFamilyChain('Arial, "Helvetica Neue", \'Open Sans\', sans-serif'))
-            .toEqual(['Arial', 'Helvetica Neue', 'Open Sans', 'sans-serif'])
+        expect(parseFontFamilyChain('Arial, "Helvetica Neue", \'Open Sans\', sans-serif')).toEqual([
+            'Arial',
+            'Helvetica Neue',
+            'Open Sans',
+            'sans-serif',
+        ])
     })
 
     it('trims surrounding whitespace and keeps inner spaces of unquoted names', () => {
@@ -19,7 +23,7 @@ describe('parseFontFamilyChain', () => {
     })
 
     it('treats the other quote char as literal inside a quoted name', () => {
-        expect(parseFontFamilyChain('"It\'s", \'Say "hi"\'')).toEqual(['It\'s', 'Say "hi"'])
+        expect(parseFontFamilyChain('"It\'s", \'Say "hi"\'')).toEqual(["It's", 'Say "hi"'])
     })
 
     it('unescapes backslash sequences inside quotes', () => {
@@ -72,7 +76,7 @@ describe('matchChain', () => {
 describe('pickPickerName', () => {
     it('trims and strips surrounding quotes', () => {
         expect(pickPickerName('  "Helvetica Neue" ')).toBe('Helvetica Neue')
-        expect(pickPickerName('\'Open Sans\'')).toBe('Open Sans')
+        expect(pickPickerName("'Open Sans'")).toBe('Open Sans')
         expect(pickPickerName('Arial')).toBe('Arial')
     })
 

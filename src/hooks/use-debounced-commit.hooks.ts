@@ -43,11 +43,13 @@ export function useDebouncedCommit<TValue>(
     delay = 180,
 ): UseDebouncedCommitResult<TValue> {
     const [draft, setDraft] = useState(persisted)
+    const [lastPersisted, setLastPersisted] = useState(persisted)
     const { schedule, cancel } = useDebouncedTimer(delay)
 
-    useEffect(() => {
+    if (!Object.is(persisted, lastPersisted)) {
+        setLastPersisted(persisted)
         setDraft(persisted)
-    }, [persisted])
+    }
 
     useEffect(() => cancel, [cancel])
 

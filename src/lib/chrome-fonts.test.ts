@@ -30,7 +30,9 @@ describe('isMappingInstalledLocally', () => {
 
     it('is case-sensitive and ignores an empty id', () => {
         expect(isMappingInstalledLocally({ name: 'inter' }, fonts)).toBe(false)
-        expect(isMappingInstalledLocally({ name: 'Missing', id: '' }, [{ ...fonts[0], postscriptName: '' }])).toBe(false)
+        expect(isMappingInstalledLocally({ name: 'Missing', id: '' }, [{ ...fonts[0], postscriptName: '' }])).toBe(
+            false,
+        )
     })
 
     it('returns false for no fonts', () => {
@@ -98,12 +100,14 @@ describe('listLocalFonts', () => {
     })
 
     it('sorts by family, then regular-ish faces first', async () => {
-        window.queryLocalFonts = vi.fn().mockResolvedValue([
-            { ...font('Roboto', 'Bold'), extra: true },
-            font('Inter', 'Light'),
-            font('Inter', 'Regular'),
-            font('Inter', 'Book'),
-        ])
+        window.queryLocalFonts = vi
+            .fn()
+            .mockResolvedValue([
+                { ...font('Roboto', 'Bold'), extra: true },
+                font('Inter', 'Light'),
+                font('Inter', 'Regular'),
+                font('Inter', 'Book'),
+            ])
 
         expect(isLocalFontsApiAvailable()).toBe(true)
         expect(await listLocalFonts()).toEqual([

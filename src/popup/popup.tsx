@@ -71,9 +71,7 @@ export function Popup() {
                 {status === 'restricted' && (
                     <div className="flex flex-col items-center justify-center gap-2 px-8 py-12 text-center text-muted-foreground">
                         <Type className="size-5" />
-                        <p className="text-xs leading-relaxed">
-                            FontMapper only works on regular http(s) pages.
-                        </p>
+                        <p className="text-xs leading-relaxed">FontMapper only works on regular http(s) pages.</p>
                     </div>
                 )}
 
