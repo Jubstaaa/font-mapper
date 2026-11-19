@@ -9,7 +9,9 @@ import {
     saveCachedLocalFonts,
 } from '@/lib/chrome-storage'
 
-import type { BackupMessage, FontAccessStatus } from './options.types'
+type FontAccessStatus = 'checking' | 'idle' | 'loading' | 'granted' | 'refresh-pending' | 'denied' | 'unsupported'
+
+type BackupMessage = { tone: 'ok' | 'err'; text: string } | null
 
 function describeFontError(err: unknown): string {
     if (err instanceof DOMException && err.name === 'SecurityError') {

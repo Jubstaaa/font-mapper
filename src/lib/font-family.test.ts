@@ -31,5 +31,6 @@ describe('quoteFamily', () => {
 
     it('quotes CSS-wide keywords (unquoted `inherit` is not a family name)', () => {
         expect(quoteFamily('inherit')).toBe('"inherit"')
+        expect(quoteFamily('default')).toBe('"default"')
     })
 })

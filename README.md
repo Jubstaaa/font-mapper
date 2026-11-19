@@ -116,7 +116,7 @@ TypeScript 6 compiler API; `tsc` itself comes from `@typescript/native` (TypeScr
 
 ## Project structure
 
-Flat per-feature folders. Each feature owns its component, types, and (when business logic exceeds the component) a colocated hooks file.
+Flat per-feature folders, one per extension surface. Code lives next to its only consumer; `lib/` holds what more than one surface shares. Each `*.test.ts` sits next to the file it covers.
 
 ```
 src/
@@ -126,40 +126,38 @@ src/
 │   └── lifecycle.ts                  onInstalled / onStartup / migration trigger
 ├── content/                          Injected into every page (document_start)
 │   ├── content.ts                    Entry — init + IPC + lifecycle listeners
-│   ├── content.types.ts              InlineSnapshot, OverrideState
 │   ├── font-chain.ts                 Pure parsers: parseFontFamilyChain, matchChain
 │   ├── element-override.ts           Apply / restore inline style per element + state
-│   ├── used-fonts.ts                 collectUsedFonts + chain/element caches
+│   ├── used-fonts.ts                 collectUsedFonts + element index for highlighting
 │   ├── highlight.ts                  Hover-highlight CSS injection
-│   └── observers.ts                  MutationObserver + resize debouncer
+│   └── observers.ts                  MutationObserver + debounced resize
 ├── popup/                            Browser action UI
+│   ├── main.tsx                      Popup React entry
 │   ├── popup.tsx                     JSX wiring
 │   ├── popup.hooks.ts                usePopupController owns state + IPC
-│   ├── popup.types.ts
 │   ├── font-mapping-row.tsx          One mapping row (source → target + controls)
-│   ├── font-mapping-row.types.ts
 │   ├── labeled-slider.tsx            Reused by Scale + Line + Letter + Word
+│   ├── use-debounced-commit.ts       Draft value + debounced commit (use-debounce)
 │   ├── advanced-color.tsx            Native color picker with reset
-│   ├── style-toggles.tsx             Bold + Italic buttons
+│   ├── style-toggles.tsx             Bold + Italic toggles
 │   ├── mapping-warning.tsx           Orphan / missing-target banner
-│   ├── font-combobox.tsx             Searchable combobox (cmdk + Radix Popover)
-│   └── font-combobox.types.ts
+│   ├── mapping-warning-state.ts      Which warning a row shows
+│   └── font-combobox.tsx             Searchable combobox (cmdk + Radix Popover)
 ├── options/                          Settings page (Local Font Access + backup)
+│   ├── main.tsx                      Options React entry
 │   ├── options.tsx                   JSX wiring
-│   ├── options.hooks.ts              useFontAccess + useBackupActions
-│   └── options.types.ts
-├── hooks/
-│   └── use-debounced-commit.hooks.ts Shared debounce timer + draft/commit debounce
-├── lib/
+│   └── options.hooks.ts              useFontAccess + useBackupActions
+├── lib/                              Shared by more than one surface
 │   ├── chrome-storage.ts             CRUD over chrome.storage.sync (with local fallback)
-│   ├── chrome-storage.types.ts       Shape definitions
+│   ├── chrome-storage.types.ts       Stored data shapes
 │   ├── chrome-storage-migration.ts   One-shot local → sync migration
 │   ├── chrome-fonts.ts               Local Font Access enumeration + variant picking
 │   ├── chrome-messaging.ts           Type-safe popup ↔ content messages
-│   ├── font-family.ts                CSS font-family quoting + generic keywords
+│   ├── font-family.ts                CSS font-family quoting + keyword sets
+│   ├── page-host.ts                  Hostname of an http(s) tab URL
 │   └── utils.ts                      shadcn cn helper
 ├── components/ui/                    shadcn primitives (slider, popover, tooltip, …)
-├── main.tsx                          Popup React entry
+├── test/setup.ts                     Vitest setup (fake chrome.* APIs)
 └── index.css                         Tailwind + design tokens
 
 public/                               Manifest icons (16/32/48/128)

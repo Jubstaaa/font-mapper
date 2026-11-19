@@ -1,7 +1,7 @@
 import { RotateCcw } from 'lucide-react'
 
 import { Slider } from '@/components/ui/slider'
-import { useDebouncedCommit } from '@/hooks/use-debounced-commit.hooks'
+import { useDebouncedCommit } from './use-debounced-commit'
 import { cn } from '@/lib/utils'
 
 interface LabeledSliderProps {

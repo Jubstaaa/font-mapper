@@ -1,7 +1,5 @@
 import type { CachedLocalFont, ExportPayload, FontMap, FontMapping, FontMapStore } from './chrome-storage.types'
 
-export type { CachedLocalFont, ExportPayload, FontMap, FontMapping, FontMapStore } from './chrome-storage.types'
-
 export const STORAGE_KEY = 'fontMapperMappings'
 export const FONT_CACHE_KEY = 'fontMapperLocalFonts'
 export const FONT_CACHE_VERSION_KEY = 'fontMapperLocalFontsVersion'

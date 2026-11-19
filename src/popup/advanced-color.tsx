@@ -1,6 +1,6 @@
 import { RotateCcw } from 'lucide-react'
 
-import { useDebouncedCommit } from '@/hooks/use-debounced-commit.hooks'
+import { useDebouncedCommit } from './use-debounced-commit'
 import { cn } from '@/lib/utils'
 
 const COLOR_DEFAULT = '#000000'

@@ -1,11 +1,5 @@
-import {
-    FONT_CACHE_KEY,
-    loadCachedLocalFonts,
-    loadMappingsForHost,
-    onMappingsChanged,
-    type CachedLocalFont,
-    type FontMap,
-} from '@/lib/chrome-storage'
+import { FONT_CACHE_KEY, loadCachedLocalFonts, loadMappingsForHost, onMappingsChanged } from '@/lib/chrome-storage'
+import type { CachedLocalFont, FontMap } from '@/lib/chrome-storage.types'
 import {
     POPUP_PORT_NAME,
     type ApplyMappingsMessage,
