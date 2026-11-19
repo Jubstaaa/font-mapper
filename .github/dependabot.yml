@@ -1,18 +1,26 @@
 version: 2
 updates:
-    - package-ecosystem: bun
-      directory: /
-      schedule:
-          interval: weekly
-      # Wait a week before proposing a new release: compromised versions are
-      # usually caught and pulled within days.
-      cooldown:
-          default-days: 7
-    - package-ecosystem: github-actions
-      directory: /
-      schedule:
-          interval: weekly
-      # Wait a week before proposing a new release: compromised versions are
-      # usually caught and pulled within days.
-      cooldown:
-          default-days: 7
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    # Wait a week before proposing a new release: compromised versions are
+    # usually caught and pulled within days.
+    cooldown:
+      default-days: 7
+    groups:
+      # react and react-dom refuse to run at different versions.
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      tailwind:
+        patterns: ["tailwindcss", "@tailwindcss/*"]
+      vite:
+        patterns: ["vite", "@vitejs/*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Wait a week before proposing a new release: compromised versions are
+    # usually caught and pulled within days.
+    cooldown:
+      default-days: 7
