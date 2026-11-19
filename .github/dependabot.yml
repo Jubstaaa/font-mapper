@@ -16,10 +16,6 @@ updates:
         patterns: ["tailwindcss", "@tailwindcss/*"]
       vite:
         patterns: ["vite", "@vitejs/*"]
-    ignore:
-      # Must match the Node.js major the code runs on, not the newest one.
-      - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
