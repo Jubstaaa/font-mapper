@@ -1,16 +1,34 @@
 import { useState } from 'react'
 import { ArrowRight, ChevronDown, ChevronUp } from 'lucide-react'
 
+import type { LocalFontFamilyVariants } from '@/lib/chrome-fonts'
+import type { FontMapping } from '@/lib/chrome-storage.types'
 import { quoteFamily } from '@/lib/font-family'
 import { cn } from '@/lib/utils'
 
 import { AdvancedColor } from './advanced-color'
 import { FontCombobox } from './font-combobox'
-import type { FontMappingRowProps } from './font-mapping-row.types'
 import { LabeledSlider } from './labeled-slider'
 import { MappingWarning } from './mapping-warning'
 import { deriveMappingWarning } from './mapping-warning-state'
 import { StyleToggles } from './style-toggles'
+
+interface FontMappingRowProps {
+    source: string
+    mapping: FontMapping | null
+    options: string[]
+    variants: LocalFontFamilyVariants | null
+    sourceOnPage: boolean
+    targetAvailable: boolean
+    onChange: (value: string | null) => void
+    onScaleChange: (scale: number) => void
+    onStyleChange: (style: { bold?: boolean; italic?: boolean }) => void
+    onLineHeightChange: (value: number | undefined) => void
+    onLetterSpacingChange: (value: number | undefined) => void
+    onWordSpacingChange: (value: number | undefined) => void
+    onColorChange: (value: string | undefined) => void
+    onHover: (hovering: boolean) => void
+}
 
 const SCALE_MIN = 0.5
 const SCALE_MAX = 2

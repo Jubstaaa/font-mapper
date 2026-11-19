@@ -1,9 +1,26 @@
 import { getFamilyVariants, isMappingInstalledLocally } from '@/lib/chrome-fonts'
-import type { CachedLocalFont, FontMap, FontMapping } from '@/lib/chrome-storage'
+import type { CachedLocalFont, FontMap, FontMapping } from '@/lib/chrome-storage.types'
 import { quoteFamily } from '@/lib/font-family'
 
-import type { InlineSnapshot, OverrideState } from './content.types'
 import { matchChain, parseFontFamilyChain } from './font-chain'
+
+interface InlineSnapshot {
+    value: string
+    priority: string
+}
+
+interface OverrideState {
+    sourceKey: string
+    targetSignature: string
+    inlineFontFamily: InlineSnapshot
+    inlineFontSize: InlineSnapshot
+    inlineLineHeight: InlineSnapshot
+    inlineLetterSpacing: InlineSnapshot
+    inlineWordSpacing: InlineSnapshot
+    inlineColor: InlineSnapshot
+    originalComputedSizePx: number
+    originalChain: string[]
+}
 
 const MAPPED_ATTR = 'data-fm-mapped'
 

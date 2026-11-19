@@ -7,7 +7,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { quoteFamily } from '@/lib/font-family'
 import { cn } from '@/lib/utils'
 
-import type { FontComboboxProps } from './font-combobox.types'
+interface FontComboboxProps {
+    value: string | null
+    options: string[]
+    placeholder?: string
+    onSelect: (value: string | null) => void
+}
 
 export function FontCombobox({ value, options, placeholder = 'Map to local font…', onSelect }: FontComboboxProps) {
     const [open, setOpen] = useState(false)

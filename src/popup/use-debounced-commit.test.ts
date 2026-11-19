@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useDebouncedCommit, useDebouncedTimer } from './use-debounced-commit.hooks'
+import { useDebouncedCommit } from './use-debounced-commit'
 
 beforeEach(() => {
     vi.useFakeTimers()
@@ -9,57 +9,6 @@ beforeEach(() => {
 
 afterEach(() => {
     vi.useRealTimers()
-})
-
-describe('useDebouncedTimer', () => {
-    it('runs the callback after the delay', () => {
-        const callback = vi.fn()
-        const { result } = renderHook(() => useDebouncedTimer(100))
-
-        result.current.schedule(callback)
-        vi.advanceTimersByTime(99)
-        expect(callback).not.toHaveBeenCalled()
-        vi.advanceTimersByTime(1)
-        expect(callback).toHaveBeenCalledOnce()
-    })
-
-    it('replaces a pending callback when rescheduled', () => {
-        const first = vi.fn()
-        const second = vi.fn()
-        const { result } = renderHook(() => useDebouncedTimer(100))
-
-        result.current.schedule(first)
-        vi.advanceTimersByTime(60)
-        result.current.schedule(second)
-        vi.advanceTimersByTime(60)
-        expect(second).not.toHaveBeenCalled()
-        vi.advanceTimersByTime(40)
-
-        expect(first).not.toHaveBeenCalled()
-        expect(second).toHaveBeenCalledOnce()
-    })
-
-    it('cancels a pending callback, and cancel is safe when idle', () => {
-        const callback = vi.fn()
-        const { result } = renderHook(() => useDebouncedTimer(100))
-
-        result.current.cancel()
-        result.current.schedule(callback)
-        result.current.cancel()
-        vi.runAllTimers()
-
-        expect(callback).not.toHaveBeenCalled()
-    })
-
-    it('keeps stable function identities across renders', () => {
-        const { result, rerender } = renderHook(() => useDebouncedTimer(100))
-        const { schedule, cancel } = result.current
-
-        rerender()
-
-        expect(result.current.schedule).toBe(schedule)
-        expect(result.current.cancel).toBe(cancel)
-    })
 })
 
 describe('useDebouncedCommit', () => {

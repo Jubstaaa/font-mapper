@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useDebouncedCallback } from 'use-debounce'
 
-import { useDebouncedTimer } from '@/hooks/use-debounced-commit.hooks'
 import { getFamilyVariants, type LocalFont } from '@/lib/chrome-fonts'
 import {
     FONT_CACHE_VERSION,
@@ -8,9 +8,8 @@ import {
     loadCachedLocalFontsVersion,
     loadMappingsForHost,
     saveMappingsForHost,
-    type FontMap,
-    type FontMapping,
 } from '@/lib/chrome-storage'
+import type { FontMap, FontMapping } from '@/lib/chrome-storage.types'
 import {
     POPUP_PORT_NAME,
     sendToTab,
@@ -18,8 +17,9 @@ import {
     type GetUsedFontsResponse,
     type PortMessage,
 } from '@/lib/chrome-messaging'
+import { httpHostname } from '@/lib/page-host'
 
-import type { PopupStatus } from './popup.types'
+type PopupStatus = 'loading' | 'restricted' | 'no-script' | 'permission-required' | 'ready'
 
 const PERSIST_DEBOUNCE_MS = 200
 
@@ -33,7 +33,10 @@ export function usePopupController() {
     const [cacheStale, setCacheStale] = useState(false)
 
     const portRef = useRef<chrome.runtime.Port | null>(null)
-    const { schedule: schedulePersist, cancel: cancelPersist } = useDebouncedTimer(PERSIST_DEBOUNCE_MS)
+    const persistDebounced = useDebouncedCallback(
+        (host: string, next: FontMap) => void saveMappingsForHost(host, next),
+        PERSIST_DEBOUNCE_MS,
+    )
 
     const familyOptions = useMemo(() => {
         const seen = new Set<string>()
@@ -66,19 +69,12 @@ export function usePopupController() {
         return [...usedFonts, ...orphans]
     }, [usedFonts, mappings, usedFontsSet])
 
-    const persistDebounced = useCallback(
-        (host: string, next: FontMap) => {
-            schedulePersist(() => void saveMappingsForHost(host, next))
-        },
-        [schedulePersist],
-    )
-
     const persistNow = useCallback(
         async (host: string, next: FontMap) => {
-            cancelPersist()
+            persistDebounced.cancel()
             await saveMappingsForHost(host, next)
         },
-        [cancelPersist],
+        [persistDebounced],
     )
 
     const sendApply = useCallback(
@@ -199,7 +195,8 @@ export function usePopupController() {
         ;(async () => {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
 
-            if (!tab?.id || !tab.url || !/^https?:/.test(tab.url)) {
+            const tabHost = httpHostname(tab?.url)
+            if (!tab?.id || !tabHost) {
                 if (!cancelled) setStatus('restricted')
                 return
             }
@@ -219,7 +216,7 @@ export function usePopupController() {
             const response = await sendToTab<GetUsedFontsResponse>(tab.id, { type: 'GET_USED_FONTS' })
             if (cancelled) return
 
-            const host = response?.hostname || new URL(tab.url).hostname
+            const host = response?.hostname || tabHost
             const saved = await loadMappingsForHost(host)
             if (cancelled) return
 

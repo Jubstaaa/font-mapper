@@ -1,3 +1,5 @@
+import { debounce } from 'es-toolkit/function'
+
 import { applyToElement, clearAllOverrides, hasMappings, walkAll } from './element-override'
 
 function runIdle(cb: () => void, timeout = 200): void {
@@ -60,14 +62,8 @@ export function startObservers(): void {
     if (root) domObserver.observe(root, { childList: true, subtree: true })
 }
 
-let resizeTimer: ReturnType<typeof setTimeout> | null = null
-
-export function onResize(): void {
-    if (resizeTimer) clearTimeout(resizeTimer)
-    resizeTimer = setTimeout(() => {
-        resizeTimer = null
-        if (!hasMappings()) return
-        clearAllOverrides()
-        walkAll()
-    }, 200)
-}
+export const onResize = debounce(() => {
+    if (!hasMappings()) return
+    clearAllOverrides()
+    walkAll()
+}, 200)

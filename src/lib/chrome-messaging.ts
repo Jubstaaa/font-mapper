@@ -1,4 +1,4 @@
-import type { FontMap } from './chrome-storage'
+import type { FontMap } from './chrome-storage.types'
 
 export const POPUP_PORT_NAME = 'font-mapper-popup'
 

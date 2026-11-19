@@ -4,9 +4,8 @@ import { getOverrideState } from './element-override'
 import { parseFontFamilyChain, pickPickerName } from './font-chain'
 
 const fontElementCache = new Map<string, WeakRef<Element>[]>()
-const chainCache = new Map<Element, string[]>()
 
-function computeChainForElement(node: Element): string[] {
+function computeChainForElement(node: Element, chainCache: Map<Element, string[]>): string[] {
     const state = getOverrideState(node)
     if (state) return state.originalChain
     const family = window.getComputedStyle(node).fontFamily
@@ -15,16 +14,16 @@ function computeChainForElement(node: Element): string[] {
     if (parent) {
         const parentFamily = window.getComputedStyle(parent).fontFamily
         if (parentFamily === family) {
-            return chainForElement(parent)
+            return chainForElement(parent, chainCache)
         }
     }
     return parseFontFamilyChain(family)
 }
 
-function chainForElement(node: Element): string[] {
+function chainForElement(node: Element, chainCache: Map<Element, string[]>): string[] {
     const cached = chainCache.get(node)
     if (cached) return cached
-    const result = computeChainForElement(node)
+    const result = computeChainForElement(node, chainCache)
     chainCache.set(node, result)
     return result
 }
@@ -39,14 +38,15 @@ function indexCache(name: string, node: Element): void {
 }
 
 export function collectUsedFonts(): string[] {
-    chainCache.clear()
+    // Per-call so detached elements are not kept alive between popup opens.
+    const chainCache = new Map<Element, string[]>()
     fontElementCache.clear()
     const found = new Set<string>()
     if (!document.body) return []
     const nodes = document.body.querySelectorAll('*')
     const allNodes: Element[] = [document.body, ...Array.from(nodes)]
     for (const node of allNodes) {
-        const chain = chainForElement(node)
+        const chain = chainForElement(node, chainCache)
         if (!chain.length) continue
 
         let namedAdded = false

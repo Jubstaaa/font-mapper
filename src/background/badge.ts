@@ -1,41 +1,31 @@
 import { isMappingInstalledLocally } from '@/lib/chrome-fonts'
+import { httpHostname } from '@/lib/page-host'
+import type { CachedLocalFont, FontMapStore } from '@/lib/chrome-storage.types'
 import { FONT_CACHE_KEY, STORAGE_KEY, loadAllMappings, loadCachedLocalFonts } from '@/lib/chrome-storage'
 
 const BADGE_COLOR = '#242424'
 
-function isHttpUrl(url: string | undefined): url is string {
-    return typeof url === 'string' && /^https?:/.test(url)
+function badgeTextFor(url: string | undefined, store: FontMapStore, fonts: CachedLocalFont[]): string {
+    const hostname = httpHostname(url)
+    if (!hostname) return ''
+    const count = Object.values(store[hostname] ?? {}).filter(m => isMappingInstalledLocally(m, fonts)).length
+    return count > 0 ? String(count) : ''
 }
 
-function hostnameOf(url: string): string | null {
-    try {
-        return new URL(url).hostname
-    } catch {
-        return null
-    }
+async function setBadge(tabId: number, text: string): Promise<void> {
+    if (text) await chrome.action.setBadgeBackgroundColor({ tabId, color: BADGE_COLOR })
+    await chrome.action.setBadgeText({ tabId, text })
 }
 
 async function updateBadgeForTab(tabId: number, url: string | undefined): Promise<void> {
-    if (!isHttpUrl(url)) {
-        await chrome.action.setBadgeText({ tabId, text: '' })
-        return
-    }
-    const hostname = hostnameOf(url)
-    if (!hostname) {
-        await chrome.action.setBadgeText({ tabId, text: '' })
-        return
-    }
-    const [all, fonts] = await Promise.all([loadAllMappings(), loadCachedLocalFonts()])
-    const mappings = all[hostname] ?? {}
-    const count = Object.values(mappings).filter(m => isMappingInstalledLocally(m, fonts)).length
-    await chrome.action.setBadgeBackgroundColor({ tabId, color: BADGE_COLOR })
-    await chrome.action.setBadgeText({ tabId, text: count > 0 ? String(count) : '' })
+    const [store, fonts] = await Promise.all([loadAllMappings(), loadCachedLocalFonts()])
+    await setBadge(tabId, badgeTextFor(url, store, fonts))
 }
 
 export async function refreshAllBadges(): Promise<void> {
-    const tabs = await chrome.tabs.query({})
+    const [tabs, store, fonts] = await Promise.all([chrome.tabs.query({}), loadAllMappings(), loadCachedLocalFonts()])
     await Promise.all(
-        tabs.map(t => (t.id != null ? updateBadgeForTab(t.id, t.url).catch(() => {}) : Promise.resolve())),
+        tabs.map(t => (t.id != null ? setBadge(t.id, badgeTextFor(t.url, store, fonts)).catch(() => {}) : undefined)),
     )
 }
 
