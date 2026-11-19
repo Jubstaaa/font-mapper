@@ -156,14 +156,31 @@ describe('mapping storage', () => {
         expect(await loadAllMappings()).toEqual({ 'example.com': { helvetica: { name: 'Inter' } } })
     })
 
-    it('prefers sync over local and clears local after a sync write', async () => {
-        await chrome.storage.local.set({ [STORAGE_KEY]: { 'stale.com': { a: 'A' } } })
-        await chrome.storage.sync.set({ [STORAGE_KEY]: { 'fresh.com': { b: 'B' } } })
+    it('reads the local copy over sync, because it only exists after a failed sync write', async () => {
+        await chrome.storage.sync.set({ [STORAGE_KEY]: { 'stale.com': { a: 'A' } } })
+        await chrome.storage.local.set({ [STORAGE_KEY]: { 'fresh.com': { b: 'B' } } })
 
         expect(await loadAllMappings()).toEqual({ 'fresh.com': { b: { name: 'B' } } })
+    })
 
-        await saveMappingsForHost('fresh.com', { c: { name: 'C' } })
+    it('clears the local copy once a sync write succeeds', async () => {
+        await chrome.storage.local.set({ [STORAGE_KEY]: { 'a.com': { a: 'A' } } })
+
+        await saveMappingsForHost('b.com', { b: { name: 'B' } })
+
         expect(await readArea('local')).toBeUndefined()
+        expect(await readArea('sync')).toEqual({ 'a.com': { a: { name: 'A' } }, 'b.com': { b: { name: 'B' } } })
+    })
+
+    it('keeps edits made after a sync write fails instead of reverting to the stale sync copy', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {})
+        await saveMappingsForHost('example.com', { a: { name: 'Old' } })
+        vi.spyOn(chrome.storage.sync, 'set').mockImplementationOnce(() => Promise.reject(new Error('QUOTA_BYTES')))
+
+        await saveMappingsForHost('example.com', { a: { name: 'New' } })
+
+        expect(await loadMappingsForHost('example.com')).toEqual({ a: { name: 'New' } })
+        vi.restoreAllMocks()
     })
 
     it('writes to local when the sync write fails', async () => {
@@ -228,7 +245,7 @@ describe('onMappingsChanged', () => {
         ])
 
         await vi.waitFor(() => expect(callback).toHaveBeenCalledOnce())
-        expect(callback).toHaveBeenCalledWith({ 'a.com': { x: { name: 'X' } } })
+        expect(callback).toHaveBeenCalledWith({ 'b.com': { y: { name: 'Y' } } })
 
         unsubscribe()
         await chrome.storage.sync.set({ [STORAGE_KEY]: {} })

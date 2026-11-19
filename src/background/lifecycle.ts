@@ -1,4 +1,4 @@
-import { migrateMappingsToSync } from '@/lib/chrome-storage'
+import { migrateMappingsToSync } from '@/lib/chrome-storage-migration'
 
 import { refreshAllBadges } from './badge'
 
