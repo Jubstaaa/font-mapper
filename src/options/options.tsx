@@ -1,4 +1,3 @@
-import { createRoot } from 'react-dom/client'
 import { Check, Download, RefreshCw, ShieldAlert, Sparkles, Trash2, Upload, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -6,9 +5,7 @@ import { Separator } from '@/components/ui/separator'
 
 import { useBackupActions, useFontAccess } from './options.hooks'
 
-import '@/index.css'
-
-function Options() {
+export function Options() {
     const { status, fontCount, familyCount, errorMessage, handleGrant } = useFontAccess()
     const { backupMessage, importInputRef, handleExport, handleImportFile, handleReset } = useBackupActions()
 
@@ -91,8 +88,8 @@ function Options() {
                             <p className="text-sm text-muted-foreground">
                                 <span className="font-medium text-foreground">{familyCount}</span> font{' '}
                                 {familyCount === 1 ? 'family' : 'families'} (
-                                <span className="font-medium text-foreground">{fontCount}</span> styles) cached. Open the
-                                FontMapper popup on any site to start mapping.
+                                <span className="font-medium text-foreground">{fontCount}</span> styles) cached. Open
+                                the FontMapper popup on any site to start mapping.
                             </p>
                             <Button onClick={handleGrant} variant="outline" size="sm">
                                 <RefreshCw className="mr-1.5 size-3.5" />
@@ -198,7 +195,3 @@ function Options() {
         </div>
     )
 }
-
-const root = document.getElementById('root')
-if (!root) throw new Error('Root element not found')
-createRoot(root).render(<Options />)

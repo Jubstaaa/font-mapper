@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client'
-import { Popup } from '@/popup/popup'
+import { Popup } from './popup'
 import '@/index.css'
 
 const root = document.getElementById('root')

@@ -53,12 +53,14 @@ describe('normalizeStore', () => {
     })
 
     it('upgrades legacy string and { font } mappings', () => {
-        expect(normalizeStore({
-            'example.com': {
-                helvetica: 'Inter',
-                arial: { font: 'Roboto' },
-            },
-        })).toEqual({
+        expect(
+            normalizeStore({
+                'example.com': {
+                    helvetica: 'Inter',
+                    arial: { font: 'Roboto' },
+                },
+            }),
+        ).toEqual({
             'example.com': {
                 helvetica: { name: 'Inter' },
                 arial: { name: 'Roboto' },
@@ -98,17 +100,19 @@ describe('normalizeStore', () => {
     })
 
     it('skips junk mapping entries', () => {
-        expect(normalizeStore({
-            host: {
-                empty: '',
-                nullish: null,
-                num: 42,
-                noName: { scale: 2 },
-                badName: { name: 7 },
-                badFont: { font: null },
-                ok: 'Inter',
-            },
-        })).toEqual({ host: { ok: { name: 'Inter' } } })
+        expect(
+            normalizeStore({
+                host: {
+                    empty: '',
+                    nullish: null,
+                    num: 42,
+                    noName: { scale: 2 },
+                    badName: { name: 7 },
+                    badFont: { font: null },
+                    ok: 'Inter',
+                },
+            }),
+        ).toEqual({ host: { ok: { name: 'Inter' } } })
     })
 
     it('returns an empty store for non-object input', () => {
@@ -179,10 +183,12 @@ describe('importAllSettings', () => {
     it('replaces existing settings with an export payload', async () => {
         await saveMappingsForHost('old.com', { a: { name: 'A' } })
 
-        const result = await importAllSettings(JSON.stringify({
-            version: 1,
-            mappings: { 'new.com': { b: { name: 'B' }, c: 'C' } },
-        }))
+        const result = await importAllSettings(
+            JSON.stringify({
+                version: 1,
+                mappings: { 'new.com': { b: { name: 'B' }, c: 'C' } },
+            }),
+        )
 
         expect(result).toEqual({ hostCount: 1, mappingCount: 2 })
         expect(await loadAllMappings()).toEqual({ 'new.com': { b: { name: 'B' }, c: { name: 'C' } } })

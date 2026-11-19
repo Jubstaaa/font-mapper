@@ -81,10 +81,11 @@ export function isMappingInstalledLocally(
     mapping: Pick<FontMapping, 'name' | 'id'>,
     fonts: Pick<LocalFont, 'family' | 'fullName' | 'postscriptName'>[],
 ): boolean {
-    return fonts.some(f =>
-        f.family === mapping.name
-        || (mapping.id ? f.postscriptName === mapping.id : false)
-        || f.fullName === mapping.name,
+    return fonts.some(
+        f =>
+            f.family === mapping.name ||
+            (mapping.id ? f.postscriptName === mapping.id : false) ||
+            f.fullName === mapping.name,
     )
 }
 
@@ -121,9 +122,7 @@ export function getFamilyVariants(family: string, fonts: LocalFont[]): LocalFont
     }
 
     if (!regular) {
-        const sorted = [...matches].sort(
-            (a, b) => variantPriority(a.style) - variantPriority(b.style),
-        )
+        const sorted = [...matches].sort((a, b) => variantPriority(a.style) - variantPriority(b.style))
         regular = sorted[0] ?? null
     }
 

@@ -1,10 +1,4 @@
-import type {
-    CachedLocalFont,
-    ExportPayload,
-    FontMap,
-    FontMapping,
-    FontMapStore,
-} from './chrome-storage.types'
+import type { CachedLocalFont, ExportPayload, FontMap, FontMapping, FontMapStore } from './chrome-storage.types'
 
 export type { CachedLocalFont, ExportPayload, FontMap, FontMapping, FontMapStore } from './chrome-storage.types'
 
@@ -52,15 +46,16 @@ function normalizeMappings(raw: unknown): FontMap {
         if (typeof value === 'string' && value) {
             out[source] = { name: value }
         } else if (
-            value
-            && typeof value === 'object'
-            && 'name' in value
-            && typeof (value as FontMapping).name === 'string'
+            value &&
+            typeof value === 'object' &&
+            'name' in value &&
+            typeof (value as FontMapping).name === 'string'
         ) {
             const v = value as FontMapping
-            const scale = typeof v.scale === 'number' && Number.isFinite(v.scale) && v.scale > 0 && v.scale !== 1
-                ? v.scale
-                : undefined
+            const scale =
+                typeof v.scale === 'number' && Number.isFinite(v.scale) && v.scale > 0 && v.scale !== 1
+                    ? v.scale
+                    : undefined
             const bold = v.bold === true ? true : undefined
             const italic = v.italic === true ? true : undefined
             out[source] = {
@@ -75,10 +70,10 @@ function normalizeMappings(raw: unknown): FontMap {
                 color: normalizeOptionalColor(v.color),
             }
         } else if (
-            value
-            && typeof value === 'object'
-            && 'font' in value
-            && typeof (value as { font: unknown }).font === 'string'
+            value &&
+            typeof value === 'object' &&
+            'font' in value &&
+            typeof (value as { font: unknown }).font === 'string'
         ) {
             out[source] = { name: (value as { font: string }).font }
         }
@@ -174,24 +169,20 @@ export async function importAllSettings(
 }
 
 export async function clearAllSettings(): Promise<void> {
-    await Promise.allSettled([
-        chrome.storage.sync.remove(STORAGE_KEY),
-        chrome.storage.local.remove(STORAGE_KEY),
-    ])
+    await Promise.allSettled([chrome.storage.sync.remove(STORAGE_KEY), chrome.storage.local.remove(STORAGE_KEY)])
 }
 
 export function onMappingsChanged(callback: (store: FontMapStore) => void): () => void {
     let pending = false
-    const listener = (
-        changes: Record<string, chrome.storage.StorageChange>,
-        area: chrome.storage.AreaName,
-    ) => {
+    const listener = (changes: Record<string, chrome.storage.StorageChange>, area: chrome.storage.AreaName) => {
         if ((area !== 'sync' && area !== 'local') || !changes[STORAGE_KEY]) return
         if (pending) return
         pending = true
         queueMicrotask(() => {
             pending = false
-            loadAllMappings().then(callback).catch(() => {})
+            loadAllMappings()
+                .then(callback)
+                .catch(() => {})
         })
     }
     chrome.storage.onChanged.addListener(listener)

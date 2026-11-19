@@ -6,9 +6,18 @@ on:
             - main
     pull_request:
 
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
+    # The protect-main ruleset requires this job by name; keep it `check`.
     check:
         runs-on: ubuntu-latest
+        timeout-minutes: 15
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -18,7 +27,15 @@ jobs:
 
             - name: Install dependencies
               run: bun install --frozen-lockfile
-            - run: bun run audit
+
+            - name: Audit dependencies
+              run: bun run audit
+
+            - name: Check formatting
+              run: bun run format:check
+
+            - name: Lint
+              run: bun run lint
 
             - name: Typecheck
               run: bun run typecheck

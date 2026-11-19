@@ -8,7 +8,8 @@ import { AdvancedColor } from './advanced-color'
 import { FontCombobox } from './font-combobox'
 import type { FontMappingRowProps } from './font-mapping-row.types'
 import { LabeledSlider } from './labeled-slider'
-import { MappingWarning, deriveMappingWarning } from './mapping-warning'
+import { MappingWarning } from './mapping-warning'
+import { deriveMappingWarning } from './mapping-warning-state'
 import { StyleToggles } from './style-toggles'
 
 const SCALE_MIN = 0.5
@@ -63,10 +64,10 @@ export function FontMappingRow({
     const italicAvailable = Boolean(variants?.italic) || Boolean(variants?.boldItalic)
 
     const advancedActive =
-        mapping?.lineHeight !== undefined
-        || mapping?.letterSpacing !== undefined
-        || mapping?.wordSpacing !== undefined
-        || mapping?.color !== undefined
+        mapping?.lineHeight !== undefined ||
+        mapping?.letterSpacing !== undefined ||
+        mapping?.wordSpacing !== undefined ||
+        mapping?.color !== undefined
 
     const warning = deriveMappingWarning({ sourceOnPage, targetAvailable, mappedName: mapped })
     const inert = warning?.kind === 'orphan'
@@ -134,7 +135,10 @@ export function FontMappingRow({
                         <span className="flex items-center gap-1.5">
                             Advanced
                             {advancedActive && !advancedOpen && (
-                                <span className="size-1.5 rounded-full bg-primary" aria-label="has advanced overrides" />
+                                <span
+                                    className="size-1.5 rounded-full bg-primary"
+                                    aria-label="has advanced overrides"
+                                />
                             )}
                         </span>
                         {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}

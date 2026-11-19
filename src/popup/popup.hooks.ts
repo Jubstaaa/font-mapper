@@ -168,7 +168,9 @@ export function usePopupController() {
                 ? { type: 'HIGHLIGHT_FONT', font: source }
                 : { type: 'CLEAR_HIGHLIGHT' }
             port.postMessage(message)
-        } catch {}
+        } catch {
+            // The tab navigated away and the port closed; highlighting is best-effort.
+        }
     }, [])
 
     const handleReset = useCallback(async () => {
@@ -250,7 +252,9 @@ export function usePopupController() {
             return () => {
                 try {
                     port.disconnect()
-                } catch {}
+                } catch {
+                    // Already disconnected by the tab side.
+                }
                 portRef.current = null
             }
         } catch {

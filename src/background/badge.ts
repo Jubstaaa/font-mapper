@@ -41,7 +41,10 @@ export async function refreshAllBadges(): Promise<void> {
 
 export function registerBadgeListeners(): void {
     chrome.tabs.onActivated.addListener(({ tabId }) => {
-        chrome.tabs.get(tabId).then(tab => updateBadgeForTab(tabId, tab.url)).catch(() => {})
+        chrome.tabs
+            .get(tabId)
+            .then(tab => updateBadgeForTab(tabId, tab.url))
+            .catch(() => {})
     })
 
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

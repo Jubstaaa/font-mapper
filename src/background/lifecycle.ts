@@ -7,7 +7,9 @@ function openOptionsTab(): void {
 }
 
 function runMigrationThenRefreshBadges(): void {
-    void migrateMappingsToSync().then(refreshAllBadges).catch(() => {})
+    void migrateMappingsToSync()
+        .then(refreshAllBadges)
+        .catch(() => {})
 }
 
 export function registerLifecycleListeners(): void {

@@ -49,10 +49,10 @@ function resolveLocalName(mapping: FontMapping): string {
     if (cachedFonts.length && (mapping.bold || mapping.italic)) {
         const variants = getFamilyVariants(mapping.name, cachedFonts)
         const target =
-            (mapping.bold && mapping.italic && variants.boldItalic)
-            || (mapping.bold && variants.bold)
-            || (mapping.italic && variants.italic)
-            || variants.regular
+            (mapping.bold && mapping.italic && variants.boldItalic) ||
+            (mapping.bold && variants.bold) ||
+            (mapping.italic && variants.italic) ||
+            variants.regular
         if (target) return target.postscriptName
     }
     return mapping.id || mapping.name
