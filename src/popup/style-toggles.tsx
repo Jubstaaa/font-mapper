@@ -1,5 +1,6 @@
 import { Bold, Italic } from 'lucide-react'
 
+import { Toggle } from '@/components/ui/toggle'
 import { cn } from '@/lib/utils'
 
 interface StyleToggleProps {
@@ -13,23 +14,17 @@ interface StyleToggleProps {
 
 function StyleToggle({ icon: Icon, label, active, available, unavailableHint, onClick }: StyleToggleProps) {
     return (
-        <button
-            type="button"
+        <Toggle
+            variant="outline"
             aria-label={label}
-            aria-pressed={active}
+            pressed={active}
+            onPressedChange={onClick}
             disabled={!available}
             title={available ? label : unavailableHint}
-            onClick={onClick}
-            className={cn(
-                'flex size-6 items-center justify-center rounded-sm border text-foreground transition-colors',
-                active
-                    ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
-                    : 'border-border bg-background hover:bg-accent',
-                !available && 'pointer-events-none opacity-40',
-            )}
+            className="size-6 min-w-6 rounded-sm px-0 data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
         >
             <Icon className="size-3" />
-        </button>
+        </Toggle>
     )
 }
 
@@ -54,10 +49,8 @@ export function StyleToggles({
 }: StyleTogglesProps) {
     return (
         <div
-            className={cn(
-                'flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5',
-                inert && 'pointer-events-none opacity-50',
-            )}
+            inert={inert}
+            className={cn('flex items-center gap-2 border-t border-primary/15 px-2.5 py-1.5', inert && 'opacity-70')}
         >
             <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                 Style

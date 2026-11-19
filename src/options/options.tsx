@@ -1,7 +1,20 @@
 import { Check, Download, RefreshCw, ShieldAlert, Sparkles, Trash2, Upload, X } from 'lucide-react'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 
 import { useBackupActions, useFontAccess } from './options.hooks'
 
@@ -150,15 +163,32 @@ export function Options() {
                             </Button>
                         </div>
                         <Separator />
-                        <Button
-                            onClick={handleReset}
-                            variant="outline"
-                            size="sm"
-                            className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive dark:border-destructive/60"
-                        >
-                            <Trash2 className="mr-1.5 size-3.5" />
-                            Clear all mappings
-                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive dark:border-destructive/60"
+                                >
+                                    <Trash2 className="mr-1.5 size-3.5" />
+                                    Clear all mappings
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Clear all mappings?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Delete all font mappings on every site? This cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction variant="destructive" onClick={() => void handleReset()}>
+                                        Delete all
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                         <input
                             ref={importInputRef}
                             type="file"
@@ -172,15 +202,16 @@ export function Options() {
                         />
                     </div>
                     {backupMessage && (
-                        <p
-                            className={
-                                backupMessage.tone === 'ok'
-                                    ? 'mt-3 text-[11px] text-emerald-600 dark:text-emerald-400'
-                                    : 'mt-3 text-[11px] text-destructive'
-                            }
+                        <Alert
+                            role="status"
+                            variant={backupMessage.tone === 'ok' ? 'default' : 'destructive'}
+                            className={cn(
+                                'mt-3 px-3 py-2 text-[11px]',
+                                backupMessage.tone === 'ok' && 'text-emerald-700 dark:text-emerald-400',
+                            )}
                         >
-                            {backupMessage.text}
-                        </p>
+                            <AlertDescription className="text-inherit">{backupMessage.text}</AlertDescription>
+                        </Alert>
                     )}
                     <p className="mt-3 text-[11px] text-muted-foreground">
                         Import replaces all current mappings with the file's contents.

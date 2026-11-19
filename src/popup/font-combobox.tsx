@@ -8,25 +8,33 @@ import { quoteFamily } from '@/lib/font-family'
 import { cn } from '@/lib/utils'
 
 interface FontComboboxProps {
+    label: string
     value: string | null
     options: string[]
     placeholder?: string
     onSelect: (value: string | null) => void
 }
 
-export function FontCombobox({ value, options, placeholder = 'Map to local font…', onSelect }: FontComboboxProps) {
+export function FontCombobox({
+    label,
+    value,
+    options,
+    placeholder = 'Map to local font…',
+    onSelect,
+}: FontComboboxProps) {
     const [open, setOpen] = useState(false)
 
     return (
-        <div className="relative w-full min-w-0">
+        <div className="flex w-full min-w-0 items-center gap-1">
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button
                         variant="outline"
                         role="combobox"
+                        aria-label={label}
                         aria-expanded={open}
                         className={cn(
-                            'h-8 w-full min-w-0 justify-between gap-1 px-2.5 pr-7 text-xs font-normal',
+                            'h-8 min-w-0 flex-1 justify-between gap-1 px-2.5 text-xs font-normal',
                             !value && 'text-muted-foreground',
                         )}
                     >
@@ -72,18 +80,16 @@ export function FontCombobox({ value, options, placeholder = 'Map to local font�
             </Popover>
 
             {value && (
-                <button
+                <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-xs"
                     aria-label="Clear mapping"
-                    onClick={e => {
-                        e.stopPropagation()
-                        onSelect(null)
-                    }}
-                    onPointerDown={e => e.stopPropagation()}
-                    className="absolute right-1.5 top-1/2 z-10 flex size-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground/70 hover:bg-accent hover:text-foreground"
+                    onClick={() => onSelect(null)}
+                    className="shrink-0 rounded-sm text-muted-foreground hover:text-foreground"
                 >
                     <X className="size-3" />
-                </button>
+                </Button>
             )}
         </div>
     )

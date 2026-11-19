@@ -107,7 +107,6 @@ export function useBackupActions() {
     }, [])
 
     const handleReset = useCallback(async () => {
-        if (!window.confirm('Delete all font mappings on every site? This cannot be undone.')) return
         try {
             await clearAllSettings()
             setBackupMessage({ tone: 'ok', text: 'All mappings cleared.' })
