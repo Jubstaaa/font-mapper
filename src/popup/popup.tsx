@@ -40,11 +40,7 @@ export function Popup() {
         <div className="flex flex-col">
             <header className="border-b border-white/5 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 px-4 py-3.5 text-neutral-50">
                 <div className="flex items-center gap-2.5">
-                    <img
-                        src="/icon-128.png"
-                        alt="FontMapper"
-                        className="size-6 shrink-0 rounded-md ring-1 ring-white/10"
-                    />
+                    <img src="/icon-128.png" alt="" className="size-6 shrink-0 rounded-md ring-1 ring-white/10" />
                     <h1 className="text-sm font-semibold tracking-tight">FontMapper</h1>
                     {status === 'ready' && allSources.length > 0 && (
                         <Badge

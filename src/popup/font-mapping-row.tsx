@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight, ChevronDown, ChevronUp } from 'lucide-react'
 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import type { LocalFontFamilyVariants } from '@/lib/chrome-fonts'
 import type { FontMapping } from '@/lib/chrome-storage.types'
 import { quoteFamily } from '@/lib/font-family'
@@ -89,7 +90,7 @@ export function FontMappingRow({
 
     const warning = deriveMappingWarning({ sourceOnPage, targetAvailable, mappedName: mapped })
     const inert = warning?.kind === 'orphan'
-    const inertClass = inert ? 'pointer-events-none opacity-50' : ''
+    const inertClass = inert ? 'opacity-70' : ''
 
     return (
         <li
@@ -100,7 +101,7 @@ export function FontMappingRow({
                 rowClassName(warning?.kind ?? null, Boolean(mapped)),
             )}
         >
-            <div className={cn('flex items-center gap-2 px-2.5 py-2', inertClass)}>
+            <div inert={inert} className={cn('flex items-center gap-2 px-2.5 py-2', inertClass)}>
                 <div className="min-w-0 flex-1">
                     <div
                         className="truncate text-left text-[13px] text-foreground"
@@ -112,7 +113,12 @@ export function FontMappingRow({
                 </div>
                 <ArrowRight className="size-3 shrink-0 text-muted-foreground/50" />
                 <div className="min-w-0 flex-1">
-                    <FontCombobox value={mapped} options={options} onSelect={onChange} />
+                    <FontCombobox
+                        label={`Replacement font for ${source}`}
+                        value={mapped}
+                        options={options}
+                        onSelect={onChange}
+                    />
                 </div>
             </div>
 
@@ -141,28 +147,26 @@ export function FontMappingRow({
                         inert={inert}
                         onChange={onStyleChange}
                     />
-                    <button
-                        type="button"
-                        aria-expanded={advancedOpen}
-                        onClick={() => setAdvancedOpen(o => !o)}
-                        className={cn(
-                            'flex items-center justify-between gap-2 border-t border-primary/15 px-2.5 py-1.5 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground',
-                            inertClass,
-                        )}
-                    >
-                        <span className="flex items-center gap-1.5">
-                            Advanced
-                            {advancedActive && !advancedOpen && (
-                                <span
-                                    className="size-1.5 rounded-full bg-primary"
-                                    aria-label="has advanced overrides"
-                                />
+                    <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="flex flex-col">
+                        <CollapsibleTrigger
+                            inert={inert}
+                            className={cn(
+                                'flex items-center justify-between gap-2 border-t border-primary/15 px-2.5 py-1.5 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground',
+                                inertClass,
                             )}
-                        </span>
-                        {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-                    </button>
-                    {advancedOpen && (
-                        <>
+                        >
+                            <span className="flex items-center gap-1.5">
+                                Advanced
+                                {advancedActive && !advancedOpen && (
+                                    <>
+                                        <span className="sr-only"> (overrides set)</span>
+                                        <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+                                    </>
+                                )}
+                            </span>
+                            {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="flex flex-col">
                             <LabeledSlider
                                 label="Line"
                                 min={LINE_HEIGHT_MIN}
@@ -205,8 +209,8 @@ export function FontMappingRow({
                                 onReset={() => onColorChange(undefined)}
                                 inert={inert}
                             />
-                        </>
-                    )}
+                        </CollapsibleContent>
+                    </Collapsible>
                 </>
             )}
         </li>
