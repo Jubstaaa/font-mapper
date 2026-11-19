@@ -166,7 +166,7 @@ store/                                Chrome Web Store assets (icon, screenshots
 
 ## Privacy
 
-FontMapper does not collect, transmit, or store any data outside of your browser's local storage. No analytics. No telemetry. No accounts. The full source is in this repo.
+FontMapper sends nothing to the developer or any third party: no servers, no analytics, no telemetry, no accounts. Your mappings are saved in `chrome.storage.sync`, so Chrome Sync carries them to your other signed-in Chrome browsers; the cached list of installed fonts stays in `chrome.storage.local` on this device. Details in [PRIVACY.md](PRIVACY.md). The full source is in this repo.
 
 ## License
 
