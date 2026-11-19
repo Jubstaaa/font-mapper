@@ -6,8 +6,8 @@ export async function migrateMappingsToSync(): Promise<void> {
     if (!local || typeof local !== 'object') return
     const sync = (await chrome.storage.sync.get(STORAGE_KEY))[STORAGE_KEY]
     const merged: FontMapStore = normalizeStore({
-        ...(local as Record<string, unknown>),
         ...((sync as Record<string, unknown>) ?? {}),
+        ...(local as Record<string, unknown>),
     })
     try {
         await chrome.storage.sync.set({ [STORAGE_KEY]: merged })

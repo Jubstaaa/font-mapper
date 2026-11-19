@@ -90,11 +90,13 @@ export function normalizeStore(raw: unknown): FontMapStore {
     return out
 }
 
+// Since the 0.9.0 migration, a local copy only exists because the last sync write failed
+// (quota or rate limit), so it is newer than whatever sync still holds.
 async function readRawMappings(): Promise<unknown> {
-    const sync = await chrome.storage.sync.get(STORAGE_KEY)
-    if (sync[STORAGE_KEY] !== undefined) return sync[STORAGE_KEY]
     const local = await chrome.storage.local.get(STORAGE_KEY)
-    return local[STORAGE_KEY]
+    if (local[STORAGE_KEY] !== undefined) return local[STORAGE_KEY]
+    const sync = await chrome.storage.sync.get(STORAGE_KEY)
+    return sync[STORAGE_KEY]
 }
 
 async function writeRawMappings(store: FontMapStore): Promise<void> {
@@ -188,5 +190,3 @@ export function onMappingsChanged(callback: (store: FontMapStore) => void): () =
     chrome.storage.onChanged.addListener(listener)
     return () => chrome.storage.onChanged.removeListener(listener)
 }
-
-export { migrateMappingsToSync } from './chrome-storage-migration'
