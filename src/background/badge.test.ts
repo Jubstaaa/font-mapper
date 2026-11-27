@@ -4,18 +4,32 @@ import { FONT_CACHE_KEY, STORAGE_KEY } from '@/lib/chrome-storage'
 
 import { refreshAllBadges } from './badge'
 
-const inter = { family: 'Inter', fullName: 'Inter Regular', postscriptName: 'Inter-Regular', style: 'Regular' }
+const inter = {
+    family: 'Inter',
+    fullName: 'Inter Regular',
+    postscriptName: 'Inter-Regular',
+    style: 'Regular',
+}
 
 async function seed(): Promise<number[]> {
     await chrome.storage.local.set({ [FONT_CACHE_KEY]: [inter] })
     await chrome.storage.sync.set({
         [STORAGE_KEY]: {
-            'a.com': { arial: { name: 'Inter' }, helvetica: { name: 'Inter' }, georgia: { name: 'Gone' } },
+            'a.com': {
+                arial: { name: 'Inter' },
+                georgia: { name: 'Gone' },
+                helvetica: { name: 'Inter' },
+            },
         },
     })
-    const urls = ['https://a.com/x', 'https://b.com/', 'chrome://settings', 'https://a.com/y']
+    const urls = [
+        'https://a.com/x',
+        'https://b.com/',
+        'chrome://settings',
+        'https://a.com/y',
+    ]
     const tabs = await Promise.all(urls.map(url => chrome.tabs.create({ url })))
-    return tabs.map(t => t.id!)
+    return tabs.flatMap(t => (t.id == null ? [] : [t.id]))
 }
 
 describe('refreshAllBadges', () => {
@@ -37,7 +51,9 @@ describe('refreshAllBadges', () => {
 
         await refreshAllBadges()
 
-        expect(localGet.mock.calls.length + syncGet.mock.calls.length).toBeLessThanOrEqual(3)
+        expect(
+            localGet.mock.calls.length + syncGet.mock.calls.length
+        ).toBeLessThanOrEqual(3)
         vi.restoreAllMocks()
     })
 })

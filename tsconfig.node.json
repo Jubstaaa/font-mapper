@@ -1,21 +1,20 @@
 {
+    "extends": "@jubstaaa/config/tsconfig/base",
     "compilerOptions": {
-        "target": "ES2022",
-        "lib": ["ES2023"],
-        "module": "ESNext",
-        "skipLibCheck": true,
-        "moduleResolution": "bundler",
         "allowImportingTsExtensions": true,
-        "isolatedModules": true,
+        "lib": ["ES2023"],
         "moduleDetection": "force",
         "noEmit": true,
-        "resolveJsonModule": true,
-        "strict": true,
+        "noUncheckedSideEffectImports": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "noFallthroughCasesInSwitch": true,
-        "noUncheckedSideEffectImports": true,
         "types": ["node"]
     },
-    "include": ["vite.config.ts", "vitest.config.ts", "manifest.config.ts", "manifest.config.test.ts", "scripts"]
+    "include": [
+        "vite.config.ts",
+        "vitest.config.ts",
+        "manifest.config.ts",
+        "manifest.config.test.ts",
+        "scripts"
+    ]
 }

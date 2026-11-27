@@ -1,7 +1,8 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
 import { crx } from '@crxjs/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+
 import manifest from './manifest.config.ts'
 
 export default defineConfig({
@@ -14,8 +15,6 @@ export default defineConfig({
     server: {
         port: 5173,
         strictPort: true,
-        hmr: {
-            port: 5173,
-        },
+        ws: { port: 5173 },
     },
 })

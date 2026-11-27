@@ -8,7 +8,11 @@ export default defineConfig({
     },
     test: {
         environment: 'happy-dom',
+        include: [
+            'src/**/*.test.{ts,tsx}',
+            'scripts/**/*.test.ts',
+            'manifest.config.test.ts',
+        ],
         setupFiles: ['./src/test/setup.ts'],
-        include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts', 'manifest.config.test.ts'],
     },
 })

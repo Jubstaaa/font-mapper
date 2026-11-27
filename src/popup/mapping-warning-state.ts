@@ -1,11 +1,11 @@
-export type MappingWarningKind = 'orphan' | 'missing'
+export type MappingWarningKind = 'missing' | 'orphan'
 
 export function deriveMappingWarning(args: {
+    mappedName: null | string
     sourceOnPage: boolean
     targetAvailable: boolean
-    mappedName: string | null
-}): { kind: MappingWarningKind; label: string; tooltip: string } | null {
-    const { sourceOnPage, targetAvailable, mappedName } = args
+}): null | { kind: MappingWarningKind; label: string; tooltip: string } {
+    const { mappedName, sourceOnPage, targetAvailable } = args
     if (!sourceOnPage) {
         return {
             kind: 'orphan',

@@ -6,32 +6,46 @@ import { matchChain, parseFontFamilyChain, pickPickerName } from './font-chain'
 
 describe('parseFontFamilyChain', () => {
     it('splits unquoted and quoted families', () => {
-        expect(parseFontFamilyChain('Arial, "Helvetica Neue", \'Open Sans\', sans-serif')).toEqual([
-            'Arial',
-            'Helvetica Neue',
-            'Open Sans',
-            'sans-serif',
-        ])
+        expect(
+            parseFontFamilyChain(
+                'Arial, "Helvetica Neue", \'Open Sans\', sans-serif'
+            )
+        ).toEqual(['Arial', 'Helvetica Neue', 'Open Sans', 'sans-serif'])
     })
 
     it('trims surrounding whitespace and keeps inner spaces of unquoted names', () => {
-        expect(parseFontFamilyChain('  Times New Roman ,\n\tserif  ')).toEqual(['Times New Roman', 'serif'])
+        expect(parseFontFamilyChain('  Times New Roman ,\n\tserif  ')).toEqual([
+            'Times New Roman',
+            'serif',
+        ])
     })
 
     it('keeps commas inside quotes', () => {
-        expect(parseFontFamilyChain('"Foo, Bar", baz')).toEqual(['Foo, Bar', 'baz'])
+        expect(parseFontFamilyChain('"Foo, Bar", baz')).toEqual([
+            'Foo, Bar',
+            'baz',
+        ])
     })
 
     it('treats the other quote char as literal inside a quoted name', () => {
-        expect(parseFontFamilyChain('"It\'s", \'Say "hi"\'')).toEqual(["It's", 'Say "hi"'])
+        expect(parseFontFamilyChain('"It\'s", \'Say "hi"\'')).toEqual([
+            "It's",
+            'Say "hi"',
+        ])
     })
 
     it('unescapes backslash sequences inside quotes', () => {
-        expect(parseFontFamilyChain('"Foo\\"Bar", "A\\\\B"')).toEqual(['Foo"Bar', 'A\\B'])
+        expect(parseFontFamilyChain('"Foo\\"Bar", "A\\\\B"')).toEqual([
+            'Foo"Bar',
+            'A\\B',
+        ])
     })
 
     it('round-trips quoteFamily output', () => {
-        expect(parseFontFamilyChain('"Foo\\\\Bar", "It\'s \\"Q\\""')).toEqual(['Foo\\Bar', 'It\'s "Q"'])
+        expect(parseFontFamilyChain('"Foo\\\\Bar", "It\'s \\"Q\\""')).toEqual([
+            'Foo\\Bar',
+            'It\'s "Q"',
+        ])
     })
 
     it('drops empty entries', () => {
@@ -45,7 +59,9 @@ describe('parseFontFamilyChain', () => {
     })
 
     it('collapses whitespace runs in unquoted names, per CSS', () => {
-        expect(parseFontFamilyChain('Times   New  Roman')).toEqual(['Times New Roman'])
+        expect(parseFontFamilyChain('Times   New  Roman')).toEqual([
+            'Times New Roman',
+        ])
     })
 })
 
@@ -58,8 +74,14 @@ describe('matchChain', () => {
     ])
 
     it('returns the first mapped family, case-insensitively', () => {
-        expect(matchChain(['Unknown', 'Menlo', 'Helvetica'], lookup)).toEqual({ sourceKey: 'menlo', mapping: mono })
-        expect(matchChain(['HELVETICA'], lookup)).toEqual({ sourceKey: 'helvetica', mapping: inter })
+        expect(matchChain(['Unknown', 'Menlo', 'Helvetica'], lookup)).toEqual({
+            mapping: mono,
+            sourceKey: 'menlo',
+        })
+        expect(matchChain(['HELVETICA'], lookup)).toEqual({
+            mapping: inter,
+            sourceKey: 'helvetica',
+        })
     })
 
     it('skips CSS-wide keywords even when mapped', () => {

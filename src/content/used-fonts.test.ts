@@ -16,7 +16,11 @@ describe('collectUsedFonts', () => {
             <span id="c" style="font-family: inherit">c</span>
         `
 
-        expect(collectUsedFonts()).toEqual(['Helvetica Neue', 'monospace', 'sans-serif'])
+        expect(collectUsedFonts()).toEqual([
+            'Helvetica Neue',
+            'monospace',
+            'sans-serif',
+        ])
     })
 
     it('indexes elements by font for hover highlighting', () => {
@@ -24,6 +28,8 @@ describe('collectUsedFonts', () => {
 
         collectUsedFonts()
 
-        expect(getCachedFontElements('Inter')?.map(ref => ref.deref()?.id)).toEqual(['a'])
+        expect(
+            getCachedFontElements('Inter')?.map(ref => ref.deref()?.id)
+        ).toEqual(['a'])
     })
 })

@@ -2,7 +2,6 @@ import { defineManifest } from '@crxjs/vite-plugin'
 
 import pkg from './package.json' with { type: 'json' }
 
-// FontMapper only maps fonts on http(s) pages (see lib/page-host.ts), so file:// and other schemes stay out.
 const WEB_PAGES = ['http://*/*', 'https://*/*']
 
 const icons = {
@@ -13,30 +12,31 @@ const icons = {
 }
 
 export default defineManifest({
-    manifest_version: 3,
-    name: 'FontMapper – Local Fonts for Any Website',
-    version: pkg.version,
-    description: 'Replace any website’s fonts with the fonts installed on your computer — per domain.',
-    minimum_chrome_version: '103',
-    permissions: ['activeTab', 'storage'],
-    host_permissions: WEB_PAGES,
-    icons,
     action: {
+        default_icon: icons,
         default_popup: 'index.html',
         default_title: 'FontMapper',
-        default_icon: icons,
     },
-    options_page: 'options.html',
     background: {
         service_worker: 'src/background/background.ts',
         type: 'module',
     },
     content_scripts: [
         {
-            matches: WEB_PAGES,
-            js: ['src/content/content.ts'],
-            run_at: 'document_start',
             all_frames: false,
+            js: ['src/content/content.ts'],
+            matches: WEB_PAGES,
+            run_at: 'document_start',
         },
     ],
+    description:
+        'Replace any website’s fonts with the fonts installed on your computer — per domain.',
+    host_permissions: WEB_PAGES,
+    icons,
+    manifest_version: 3,
+    minimum_chrome_version: '103',
+    name: 'FontMapper – Local Fonts for Any Website',
+    options_page: 'options.html',
+    permissions: ['activeTab', 'storage'],
+    version: pkg.version,
 })

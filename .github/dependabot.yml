@@ -11,14 +11,16 @@ updates:
       groups:
           # react and react-dom refuse to run at different versions.
           react:
-              patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+              patterns:
+                  ['react', 'react-dom', '@types/react', '@types/react-dom']
           tailwind:
               patterns: ['tailwindcss', '@tailwindcss/*']
           vite:
               patterns: ['vite', '@vitejs/*']
           # `typescript` is the TS 6 API alias that typescript-eslint needs; `@typescript/native` is tsc 7.
           typescript:
-              patterns: ['typescript', '@typescript/native', 'typescript-eslint']
+              patterns:
+                  ['typescript', '@typescript/native', 'typescript-eslint']
           eslint:
               patterns: ['eslint', '@eslint/*', 'eslint-*']
     - package-ecosystem: github-actions

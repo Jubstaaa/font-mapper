@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { countFamilies, isLocalFontsApiAvailable, listLocalFonts } from '@/lib/chrome-fonts'
+import {
+    countFamilies,
+    isLocalFontsApiAvailable,
+    listLocalFonts,
+} from '@/lib/chrome-fonts'
 import {
     clearAllSettings,
     exportAllSettings,
@@ -9,29 +13,93 @@ import {
     saveCachedLocalFonts,
 } from '@/lib/chrome-storage'
 
-type FontAccessStatus = 'checking' | 'idle' | 'loading' | 'granted' | 'refresh-pending' | 'denied' | 'unsupported'
+type BackupMessage = null | { text: string; tone: 'err' | 'ok' }
 
-type BackupMessage = { tone: 'ok' | 'err'; text: string } | null
+type FontAccessStatus =
+    | 'checking'
+    | 'denied'
+    | 'granted'
+    | 'idle'
+    | 'loading'
+    | 'refresh-pending'
+    | 'unsupported'
 
-function describeFontError(err: unknown): string {
-    if (err instanceof DOMException && err.name === 'SecurityError') {
-        return /activation/i.test(err.message)
-            ? 'Chrome only reads local fonts right after a click. Use the button above.'
-            : err.message
+export function useBackupActions() {
+    const [backupMessage, setBackupMessage] = useState<BackupMessage>(null)
+    const importInputRef = useRef<HTMLInputElement | null>(null)
+
+    const handleExport = useCallback(async () => {
+        try {
+            const payload = await exportAllSettings()
+            const blob = new Blob([JSON.stringify(payload, null, 2)], {
+                type: 'application/json',
+            })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            const stamp = new Date().toISOString().slice(0, 10)
+            a.href = url
+            a.download = `fontmapper-mappings-${stamp}.json`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+            const hostCount = Object.keys(payload.mappings).length
+            setBackupMessage({
+                text: `Exported mappings for ${hostCount} site${hostCount === 1 ? '' : 's'}.`,
+                tone: 'ok',
+            })
+        } catch (err) {
+            setBackupMessage({
+                text: err instanceof Error ? err.message : 'Export failed',
+                tone: 'err',
+            })
+        }
+    }, [])
+
+    const handleImportFile = useCallback(async (file: File) => {
+        try {
+            const text = await file.text()
+            const result = await importAllSettings(text, 'replace')
+            setBackupMessage({
+                text: `Imported ${result.mappingCount} mapping${result.mappingCount === 1 ? '' : 's'} across ${result.hostCount} site${result.hostCount === 1 ? '' : 's'}.`,
+                tone: 'ok',
+            })
+        } catch (err) {
+            setBackupMessage({
+                text: err instanceof Error ? err.message : 'Import failed',
+                tone: 'err',
+            })
+        }
+    }, [])
+
+    const handleReset = useCallback(async () => {
+        try {
+            await clearAllSettings()
+            setBackupMessage({ text: 'All mappings cleared.', tone: 'ok' })
+        } catch (err) {
+            setBackupMessage({
+                text: err instanceof Error ? err.message : 'Reset failed',
+                tone: 'err',
+            })
+        }
+    }, [])
+
+    return {
+        backupMessage,
+        handleExport,
+        handleImportFile,
+        handleReset,
+        importInputRef,
     }
-    if (err instanceof Error && err.message === 'LOCAL_FONTS_API_UNAVAILABLE') {
-        return 'This browser does not expose the Local Font Access API.'
-    }
-    return err instanceof Error ? err.message : 'Unknown error'
 }
 
 export function useFontAccess() {
     const [status, setStatus] = useState<FontAccessStatus>(() =>
-        isLocalFontsApiAvailable() ? 'checking' : 'unsupported',
+        isLocalFontsApiAvailable() ? 'checking' : 'unsupported'
     )
     const [fontCount, setFontCount] = useState(0)
     const [familyCount, setFamilyCount] = useState(0)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [errorMessage, setErrorMessage] = useState<null | string>(null)
 
     const handleGrant = useCallback(async () => {
         const isRefresh = status === 'granted' || status === 'refresh-pending'
@@ -51,7 +119,8 @@ export function useFontAccess() {
 
     useEffect(() => {
         if (!isLocalFontsApiAvailable()) return
-        const wantsRefresh = new URLSearchParams(window.location.search).get('refresh') === '1'
+        const wantsRefresh =
+            new URLSearchParams(window.location.search).get('refresh') === '1'
         void loadCachedLocalFonts().then(cached => {
             setFontCount(cached.length)
             setFamilyCount(countFamilies(cached))
@@ -63,63 +132,17 @@ export function useFontAccess() {
         })
     }, [])
 
-    return { status, fontCount, familyCount, errorMessage, handleGrant }
+    return { errorMessage, familyCount, fontCount, handleGrant, status }
 }
 
-export function useBackupActions() {
-    const [backupMessage, setBackupMessage] = useState<BackupMessage>(null)
-    const importInputRef = useRef<HTMLInputElement | null>(null)
-
-    const handleExport = useCallback(async () => {
-        try {
-            const payload = await exportAllSettings()
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            const stamp = new Date().toISOString().slice(0, 10)
-            a.href = url
-            a.download = `fontmapper-mappings-${stamp}.json`
-            document.body.appendChild(a)
-            a.click()
-            document.body.removeChild(a)
-            URL.revokeObjectURL(url)
-            const hostCount = Object.keys(payload.mappings).length
-            setBackupMessage({
-                tone: 'ok',
-                text: `Exported mappings for ${hostCount} site${hostCount === 1 ? '' : 's'}.`,
-            })
-        } catch (err) {
-            setBackupMessage({ tone: 'err', text: err instanceof Error ? err.message : 'Export failed' })
-        }
-    }, [])
-
-    const handleImportFile = useCallback(async (file: File) => {
-        try {
-            const text = await file.text()
-            const result = await importAllSettings(text, 'replace')
-            setBackupMessage({
-                tone: 'ok',
-                text: `Imported ${result.mappingCount} mapping${result.mappingCount === 1 ? '' : 's'} across ${result.hostCount} site${result.hostCount === 1 ? '' : 's'}.`,
-            })
-        } catch (err) {
-            setBackupMessage({ tone: 'err', text: err instanceof Error ? err.message : 'Import failed' })
-        }
-    }, [])
-
-    const handleReset = useCallback(async () => {
-        try {
-            await clearAllSettings()
-            setBackupMessage({ tone: 'ok', text: 'All mappings cleared.' })
-        } catch (err) {
-            setBackupMessage({ tone: 'err', text: err instanceof Error ? err.message : 'Reset failed' })
-        }
-    }, [])
-
-    return {
-        backupMessage,
-        importInputRef,
-        handleExport,
-        handleImportFile,
-        handleReset,
+function describeFontError(err: unknown): string {
+    if (err instanceof DOMException && err.name === 'SecurityError') {
+        return /activation/i.test(err.message)
+            ? 'Chrome only reads local fonts right after a click. Use the button above.'
+            : err.message
     }
+    if (err instanceof Error && err.message === 'LOCAL_FONTS_API_UNAVAILABLE') {
+        return 'This browser does not expose the Local Font Access API.'
+    }
+    return err instanceof Error ? err.message : 'Unknown error'
 }
