@@ -18,7 +18,7 @@
       },
       "devDependencies": {
         "@crxjs/vite-plugin": "^3.0.0",
-        "@jubstaaa/config": "github:Jubstaaa/configs#30c9cd2fa4a645018549f2c3016fd56f06dbb988",
+        "@jubstaa/config": "^1.6.0",
         "@tailwindcss/vite": "^4.3.5",
         "@testing-library/react": "^16.3.3",
         "@types/chrome": "^0.3.7",
@@ -127,7 +127,7 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@jubstaaa/config": ["@jubstaaa/config@github:Jubstaaa/configs#30c9cd2", { "dependencies": { "eslint-config-prettier": "^10.1.9", "eslint-plugin-no-comments": "^1.2.1", "eslint-plugin-perfectionist": "^5.14.0", "typescript-eslint": "^8.74.0" }, "peerDependencies": { "eslint": "^9.0.0 || ^10.0.0", "eslint-config-next": ">=15", "eslint-plugin-jsx-a11y": "^6.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint-config-next", "eslint-plugin-jsx-a11y"] }, "Jubstaaa-configs-30c9cd2", "sha512-oW80oajhWqfpjOQnYwC2o76az/7mCRIhibCXPLFKZfjN63Hz3PNIWzTSgyQfNerpFF7G9iLBix/mZ8tk5dZQxQ=="],
+    "@jubstaa/config": ["@jubstaa/config@1.6.0", "", { "dependencies": { "eslint-config-prettier": "^10.1.9", "eslint-plugin-no-comments": "^1.2.1", "eslint-plugin-perfectionist": "^5.14.0", "jiti": "^2.7.0", "typescript-eslint": "^8.74.0" }, "peerDependencies": { "eslint": "^9.0.0 || ^10.0.0", "eslint-config-next": ">=15", "eslint-plugin-react-hooks": "^5.0.0 || ^6.0.0 || ^7.0.0", "eslint-plugin-react-refresh": "^0.4.0 || ^0.5.0", "prettier": "^3.0.0", "typescript": "^5.0.0 || ^6.0.0" }, "optionalPeers": ["eslint-config-next", "eslint-plugin-react-hooks", "eslint-plugin-react-refresh"], "bin": { "jubstaa-doctor": "dist/bin/doctor.js" } }, "sha512-4uEGayQLALNuI7Sd63UUep7n1H3CC9X/X9zyS3pgFEh7djDrCFw5h6OZ75FabxH0uyuFjmWzyamCgbpZF3LLPQ=="],
 
     "@keyv/bigmap": ["@keyv/bigmap@1.3.1", "", { "dependencies": { "hashery": "^1.4.0", "hookified": "^1.15.0" }, "peerDependencies": { "keyv": "^5.6.0" } }, "sha512-WbzE9sdmQtKy8vrNPa9BRnwZh5UF4s1KTmSK0KUVLo3eff5BlQNNWDnFOouNpKfPKDnms9xynJjsMYjMaT/aFQ=="],
 
