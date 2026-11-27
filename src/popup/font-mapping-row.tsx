@@ -1,9 +1,14 @@
-import { useState } from 'react'
 import { ArrowRight, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState } from 'react'
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import type { LocalFontFamilyVariants } from '@/lib/chrome-fonts'
 import type { FontMapping } from '@/lib/chrome-storage.types'
+
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { quoteFamily } from '@/lib/font-family'
 import { cn } from '@/lib/utils'
 
@@ -15,20 +20,20 @@ import { deriveMappingWarning } from './mapping-warning-state'
 import { StyleToggles } from './style-toggles'
 
 interface FontMappingRowProps {
-    source: string
     mapping: FontMapping | null
-    options: string[]
-    variants: LocalFontFamilyVariants | null
-    sourceOnPage: boolean
-    targetAvailable: boolean
-    onChange: (value: string | null) => void
-    onScaleChange: (scale: number) => void
-    onStyleChange: (style: { bold?: boolean; italic?: boolean }) => void
-    onLineHeightChange: (value: number | undefined) => void
-    onLetterSpacingChange: (value: number | undefined) => void
-    onWordSpacingChange: (value: number | undefined) => void
+    onChange: (value: null | string) => void
     onColorChange: (value: string | undefined) => void
     onHover: (hovering: boolean) => void
+    onLetterSpacingChange: (value: number | undefined) => void
+    onLineHeightChange: (value: number | undefined) => void
+    onScaleChange: (scale: number) => void
+    onStyleChange: (style: { bold?: boolean; italic?: boolean }) => void
+    onWordSpacingChange: (value: number | undefined) => void
+    options: string[]
+    source: string
+    sourceOnPage: boolean
+    targetAvailable: boolean
+    variants: LocalFontFamilyVariants | null
 }
 
 const SCALE_MIN = 0.5
@@ -51,36 +56,31 @@ const WORD_SP_MAX = 1
 const WORD_SP_STEP = 0.05
 const WORD_SP_DEFAULT = 0
 
-function rowClassName(warningKind: 'orphan' | 'missing' | null, mapped: boolean): string {
-    if (warningKind === 'orphan') return 'border-border/40 bg-muted/30'
-    if (warningKind === 'missing') return 'border-amber-500/40 bg-amber-500/[0.04]'
-    if (mapped) return 'border-primary/30 bg-primary/[0.03]'
-    return 'border-border/70 hover:border-border'
-}
-
 export function FontMappingRow({
-    source,
     mapping,
-    options,
-    variants,
-    sourceOnPage,
-    targetAvailable,
     onChange,
-    onScaleChange,
-    onStyleChange,
-    onLineHeightChange,
-    onLetterSpacingChange,
-    onWordSpacingChange,
     onColorChange,
     onHover,
+    onLetterSpacingChange,
+    onLineHeightChange,
+    onScaleChange,
+    onStyleChange,
+    onWordSpacingChange,
+    options,
+    source,
+    sourceOnPage,
+    targetAvailable,
+    variants,
 }: FontMappingRowProps) {
     const mapped = mapping?.name ?? null
     const [advancedOpen, setAdvancedOpen] = useState(false)
 
     const boldActive = mapping?.bold === true
     const italicActive = mapping?.italic === true
-    const boldAvailable = Boolean(variants?.bold) || Boolean(variants?.boldItalic)
-    const italicAvailable = Boolean(variants?.italic) || Boolean(variants?.boldItalic)
+    const boldAvailable =
+        Boolean(variants?.bold) || Boolean(variants?.boldItalic)
+    const italicAvailable =
+        Boolean(variants?.italic) || Boolean(variants?.boldItalic)
 
     const advancedActive =
         mapping?.lineHeight !== undefined ||
@@ -88,26 +88,39 @@ export function FontMappingRow({
         mapping?.wordSpacing !== undefined ||
         mapping?.color !== undefined
 
-    const warning = deriveMappingWarning({ sourceOnPage, targetAvailable, mappedName: mapped })
+    const warning = deriveMappingWarning({
+        mappedName: mapped,
+        sourceOnPage,
+        targetAvailable,
+    })
     const inert = warning?.kind === 'orphan'
     const inertClass = inert ? 'opacity-70' : ''
 
     return (
         <li
-            onMouseEnter={() => onHover(true)}
-            onMouseLeave={() => onHover(false)}
             className={cn(
                 'flex flex-col rounded-lg border bg-card transition-colors',
-                rowClassName(warning?.kind ?? null, Boolean(mapped)),
+                rowClassName(warning?.kind ?? null, Boolean(mapped))
             )}
-        >
-            <div inert={inert} className={cn('flex items-center gap-2 px-2.5 py-2', inertClass)}>
+            onMouseEnter={() => {
+                onHover(true)
+            }}
+            onMouseLeave={() => {
+                onHover(false)
+            }}>
+            <div
+                className={cn(
+                    'flex items-center gap-2 px-2.5 py-2',
+                    inertClass
+                )}
+                inert={inert}>
                 <div className="min-w-0 flex-1">
                     <div
                         className="truncate text-left text-[13px] text-foreground"
-                        title={source}
-                        style={{ fontFamily: `${quoteFamily(source)}, sans-serif` }}
-                    >
+                        style={{
+                            fontFamily: `${quoteFamily(source)}, sans-serif`,
+                        }}
+                        title={source}>
                         {source}
                     </div>
                 </div>
@@ -115,99 +128,133 @@ export function FontMappingRow({
                 <div className="min-w-0 flex-1">
                     <FontCombobox
                         label={`Replacement font for ${source}`}
-                        value={mapped}
-                        options={options}
                         onSelect={onChange}
+                        options={options}
+                        value={mapped}
                     />
                 </div>
             </div>
 
-            {warning && <MappingWarning kind={warning.kind} label={warning.label} tooltip={warning.tooltip} />}
+            {warning && (
+                <MappingWarning
+                    kind={warning.kind}
+                    label={warning.label}
+                    tooltip={warning.tooltip}
+                />
+            )}
 
             {mapped && (
                 <>
                     <LabeledSlider
-                        label="Scale"
-                        min={SCALE_MIN}
-                        max={SCALE_MAX}
-                        step={SCALE_STEP}
                         defaultValue={SCALE_DEFAULT}
-                        persistedValue={mapping?.scale ?? SCALE_DEFAULT}
                         formatValue={v => `${Math.round(v * 100)}%`}
-                        onCommit={onScaleChange}
-                        onReset={() => onScaleChange(SCALE_DEFAULT)}
                         inert={inert}
+                        label="Scale"
+                        max={SCALE_MAX}
+                        min={SCALE_MIN}
+                        onCommit={onScaleChange}
+                        onReset={() => {
+                            onScaleChange(SCALE_DEFAULT)
+                        }}
+                        persistedValue={mapping?.scale ?? SCALE_DEFAULT}
+                        step={SCALE_STEP}
                     />
                     <StyleToggles
                         boldActive={boldActive}
-                        italicActive={italicActive}
                         boldAvailable={boldAvailable}
+                        inert={inert}
+                        italicActive={italicActive}
                         italicAvailable={italicAvailable}
                         mappedName={mapped}
-                        inert={inert}
                         onChange={onStyleChange}
                     />
-                    <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="flex flex-col">
+                    <Collapsible
+                        className="flex flex-col"
+                        onOpenChange={setAdvancedOpen}
+                        open={advancedOpen}>
                         <CollapsibleTrigger
-                            inert={inert}
                             className={cn(
                                 'flex items-center justify-between gap-2 border-t border-primary/15 px-2.5 py-1.5 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground',
-                                inertClass,
+                                inertClass
                             )}
-                        >
+                            inert={inert}>
                             <span className="flex items-center gap-1.5">
                                 Advanced
                                 {advancedActive && !advancedOpen && (
                                     <>
-                                        <span className="sr-only"> (overrides set)</span>
-                                        <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+                                        <span className="sr-only">
+                                            {' '}
+                                            (overrides set)
+                                        </span>
+                                        <span
+                                            aria-hidden
+                                            className="size-1.5 rounded-full bg-primary"
+                                        />
                                     </>
                                 )}
                             </span>
-                            {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                            {advancedOpen ? (
+                                <ChevronUp className="size-3" />
+                            ) : (
+                                <ChevronDown className="size-3" />
+                            )}
                         </CollapsibleTrigger>
                         <CollapsibleContent className="flex flex-col">
                             <LabeledSlider
-                                label="Line"
-                                min={LINE_HEIGHT_MIN}
-                                max={LINE_HEIGHT_MAX}
-                                step={LINE_HEIGHT_STEP}
                                 defaultValue={LINE_HEIGHT_DEFAULT}
-                                persistedValue={mapping?.lineHeight ?? LINE_HEIGHT_DEFAULT}
                                 formatValue={v => v.toFixed(2)}
+                                inert={inert}
+                                label="Line"
+                                max={LINE_HEIGHT_MAX}
+                                min={LINE_HEIGHT_MIN}
                                 onCommit={onLineHeightChange}
-                                onReset={() => onLineHeightChange(undefined)}
-                                inert={inert}
+                                onReset={() => {
+                                    onLineHeightChange(undefined)
+                                }}
+                                persistedValue={
+                                    mapping?.lineHeight ?? LINE_HEIGHT_DEFAULT
+                                }
+                                step={LINE_HEIGHT_STEP}
                             />
                             <LabeledSlider
-                                label="Letter"
-                                min={LETTER_SP_MIN}
-                                max={LETTER_SP_MAX}
-                                step={LETTER_SP_STEP}
                                 defaultValue={LETTER_SP_DEFAULT}
-                                persistedValue={mapping?.letterSpacing ?? LETTER_SP_DEFAULT}
                                 formatValue={v => `${v.toFixed(2)}em`}
-                                onCommit={onLetterSpacingChange}
-                                onReset={() => onLetterSpacingChange(undefined)}
                                 inert={inert}
+                                label="Letter"
+                                max={LETTER_SP_MAX}
+                                min={LETTER_SP_MIN}
+                                onCommit={onLetterSpacingChange}
+                                onReset={() => {
+                                    onLetterSpacingChange(undefined)
+                                }}
+                                persistedValue={
+                                    mapping?.letterSpacing ?? LETTER_SP_DEFAULT
+                                }
+                                step={LETTER_SP_STEP}
                             />
                             <LabeledSlider
-                                label="Word"
-                                min={WORD_SP_MIN}
-                                max={WORD_SP_MAX}
-                                step={WORD_SP_STEP}
                                 defaultValue={WORD_SP_DEFAULT}
-                                persistedValue={mapping?.wordSpacing ?? WORD_SP_DEFAULT}
                                 formatValue={v => `${v.toFixed(2)}em`}
-                                onCommit={onWordSpacingChange}
-                                onReset={() => onWordSpacingChange(undefined)}
                                 inert={inert}
+                                label="Word"
+                                max={WORD_SP_MAX}
+                                min={WORD_SP_MIN}
+                                onCommit={onWordSpacingChange}
+                                onReset={() => {
+                                    onWordSpacingChange(undefined)
+                                }}
+                                persistedValue={
+                                    mapping?.wordSpacing ?? WORD_SP_DEFAULT
+                                }
+                                step={WORD_SP_STEP}
                             />
                             <AdvancedColor
-                                persistedValue={mapping?.color}
-                                onCommit={onColorChange}
-                                onReset={() => onColorChange(undefined)}
                                 inert={inert}
+                                onCommit={onColorChange}
+                                onReset={() => {
+                                    onColorChange(undefined)
+                                }}
+                                persistedValue={mapping?.color}
                             />
                         </CollapsibleContent>
                     </Collapsible>
@@ -215,4 +262,15 @@ export function FontMappingRow({
             )}
         </li>
     )
+}
+
+function rowClassName(
+    warningKind: 'missing' | 'orphan' | null,
+    mapped: boolean
+): string {
+    if (warningKind === 'orphan') return 'border-border/40 bg-muted/30'
+    if (warningKind === 'missing')
+        return 'border-amber-500/40 bg-amber-500/[0.04]'
+    if (mapped) return 'border-primary/30 bg-primary/[0.03]'
+    return 'border-border/70 hover:border-border'
 }

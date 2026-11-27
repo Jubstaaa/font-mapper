@@ -5,23 +5,23 @@ export interface CachedLocalFont {
     style: string
 }
 
-export interface FontMapping {
-    name: string
-    id?: string
-    scale?: number
-    bold?: boolean
-    italic?: boolean
-    lineHeight?: number
-    letterSpacing?: number
-    wordSpacing?: number
-    color?: string
+export interface ExportPayload {
+    exportedAt: string
+    mappings: FontMapStore
+    version: 1
 }
 
 export type FontMap = Record<string, FontMapping>
-export type FontMapStore = Record<string, FontMap>
-
-export interface ExportPayload {
-    version: 1
-    exportedAt: string
-    mappings: FontMapStore
+export interface FontMapping {
+    bold?: boolean | undefined
+    color?: string | undefined
+    id?: string | undefined
+    italic?: boolean | undefined
+    letterSpacing?: number | undefined
+    lineHeight?: number | undefined
+    name: string
+    scale?: number | undefined
+    wordSpacing?: number | undefined
 }
+
+export type FontMapStore = Record<string, FontMap>

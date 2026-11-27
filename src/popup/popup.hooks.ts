@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDebouncedCallback } from 'use-debounce'
 
+import type { FontMap, FontMapping } from '@/lib/chrome-storage.types'
+
 import { getFamilyVariants, type LocalFont } from '@/lib/chrome-fonts'
+import {
+    type ApplyMappingsResponse,
+    type GetUsedFontsResponse,
+    POPUP_PORT_NAME,
+    type PortMessage,
+    sendToTab,
+} from '@/lib/chrome-messaging'
 import {
     FONT_CACHE_VERSION,
     loadCachedLocalFonts,
@@ -9,23 +18,16 @@ import {
     loadMappingsForHost,
     saveMappingsForHost,
 } from '@/lib/chrome-storage'
-import type { FontMap, FontMapping } from '@/lib/chrome-storage.types'
-import {
-    POPUP_PORT_NAME,
-    sendToTab,
-    type ApplyMappingsResponse,
-    type GetUsedFontsResponse,
-    type PortMessage,
-} from '@/lib/chrome-messaging'
 import { httpHostname } from '@/lib/page-host'
 
-type PopupStatus = 'loading' | 'restricted' | 'no-script' | 'permission-required' | 'ready'
+type PopupStatus =
+    'loading' | 'no-script' | 'permission-required' | 'ready' | 'restricted'
 
 const PERSIST_DEBOUNCE_MS = 200
 
 export function usePopupController() {
     const [status, setStatus] = useState<PopupStatus>('loading')
-    const [tabId, setTabId] = useState<number | null>(null)
+    const [tabId, setTabId] = useState<null | number>(null)
     const [hostname, setHostname] = useState('')
     const [usedFonts, setUsedFonts] = useState<string[]>([])
     const [localFonts, setLocalFonts] = useState<LocalFont[]>([])
@@ -35,7 +37,7 @@ export function usePopupController() {
     const portRef = useRef<chrome.runtime.Port | null>(null)
     const persistDebounced = useDebouncedCallback(
         (host: string, next: FontMap) => void saveMappingsForHost(host, next),
-        PERSIST_DEBOUNCE_MS,
+        PERSIST_DEBOUNCE_MS
     )
 
     const familyOptions = useMemo(() => {
@@ -74,24 +76,32 @@ export function usePopupController() {
             persistDebounced.cancel()
             await saveMappingsForHost(host, next)
         },
-        [persistDebounced],
+        [persistDebounced]
     )
 
     const sendApply = useCallback(
         (next: FontMap) => {
             if (tabId != null) {
-                void sendToTab<ApplyMappingsResponse>(tabId, { type: 'APPLY_MAPPINGS', mappings: next })
+                void sendToTab<ApplyMappingsResponse>(tabId, {
+                    mappings: next,
+                    type: 'APPLY_MAPPINGS',
+                })
             }
         },
-        [tabId],
+        [tabId]
     )
 
     const handleChange = useCallback(
-        async (source: string, target: string | null) => {
-            const next: FontMap = { ...mappings }
-            if (target === null) {
-                delete next[source]
-            } else {
+        async (source: string, target: null | string) => {
+            const next: FontMap =
+                target === null
+                    ? Object.fromEntries(
+                          Object.entries(mappings).filter(
+                              ([key]) => key !== source
+                          )
+                      )
+                    : { ...mappings }
+            if (target !== null) {
                 const psName = localFontIndex.get(target)
                 const prevScale = next[source]?.scale
                 next[source] = {
@@ -104,26 +114,29 @@ export function usePopupController() {
             await persistNow(hostname, next)
             sendApply(next)
         },
-        [mappings, hostname, localFontIndex, persistNow, sendApply],
+        [mappings, hostname, localFontIndex, persistNow, sendApply]
     )
 
     const patchMapping = useCallback(
         (source: string, patch: Partial<FontMapping>) => {
             const current = mappings[source]
             if (!current) return
-            const next: FontMap = { ...mappings, [source]: { ...current, ...patch } }
+            const next: FontMap = {
+                ...mappings,
+                [source]: { ...current, ...patch },
+            }
             setMappings(next)
             sendApply(next)
             persistDebounced(hostname, next)
         },
-        [mappings, hostname, persistDebounced, sendApply],
+        [mappings, hostname, persistDebounced, sendApply]
     )
 
     const handleScaleChange = useCallback(
         (source: string, scale: number) => {
             patchMapping(source, { scale: scale === 1 ? undefined : scale })
         },
-        [patchMapping],
+        [patchMapping]
     )
 
     const handleStyleChange = useCallback(
@@ -133,27 +146,35 @@ export function usePopupController() {
                 italic: style.italic ? true : undefined,
             })
         },
-        [patchMapping],
+        [patchMapping]
     )
 
     const handleLineHeightChange = useCallback(
-        (source: string, value: number | undefined) => patchMapping(source, { lineHeight: value }),
-        [patchMapping],
+        (source: string, value: number | undefined) => {
+            patchMapping(source, { lineHeight: value })
+        },
+        [patchMapping]
     )
 
     const handleLetterSpacingChange = useCallback(
-        (source: string, value: number | undefined) => patchMapping(source, { letterSpacing: value }),
-        [patchMapping],
+        (source: string, value: number | undefined) => {
+            patchMapping(source, { letterSpacing: value })
+        },
+        [patchMapping]
     )
 
     const handleWordSpacingChange = useCallback(
-        (source: string, value: number | undefined) => patchMapping(source, { wordSpacing: value }),
-        [patchMapping],
+        (source: string, value: number | undefined) => {
+            patchMapping(source, { wordSpacing: value })
+        },
+        [patchMapping]
     )
 
     const handleColorChange = useCallback(
-        (source: string, value: string | undefined) => patchMapping(source, { color: value }),
-        [patchMapping],
+        (source: string, value: string | undefined) => {
+            patchMapping(source, { color: value })
+        },
+        [patchMapping]
     )
 
     const handleHover = useCallback((source: string, hovering: boolean) => {
@@ -161,12 +182,10 @@ export function usePopupController() {
         if (!port) return
         try {
             const message: PortMessage = hovering
-                ? { type: 'HIGHLIGHT_FONT', font: source }
+                ? { font: source, type: 'HIGHLIGHT_FONT' }
                 : { type: 'CLEAR_HIGHLIGHT' }
             port.postMessage(message)
-        } catch {
-            // The tab navigated away and the port closed; highlighting is best-effort.
-        }
+        } catch {}
     }, [])
 
     const handleReset = useCallback(async () => {
@@ -176,33 +195,39 @@ export function usePopupController() {
     }, [hostname, persistNow, sendApply])
 
     const handleReload = useCallback(() => {
-        if (tabId != null) chrome.tabs.reload(tabId)
+        if (tabId != null) void chrome.tabs.reload(tabId)
         window.close()
     }, [tabId])
 
     const handleOpenOptions = useCallback(() => {
-        chrome.runtime.openOptionsPage()
+        void chrome.runtime.openOptionsPage()
         window.close()
     }, [])
 
     const handleRefreshFonts = useCallback(() => {
-        chrome.tabs.create({ url: chrome.runtime.getURL('options.html?refresh=1') })
+        void chrome.tabs.create({
+            url: chrome.runtime.getURL('options.html?refresh=1'),
+        })
         window.close()
     }, [])
 
     useEffect(() => {
-        let cancelled = false
-        ;(async () => {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+        const controller = new AbortController()
+        const aborted = () => controller.signal.aborted
+        void (async () => {
+            const [tab] = await chrome.tabs.query({
+                active: true,
+                currentWindow: true,
+            })
 
             const tabHost = httpHostname(tab?.url)
             if (!tab?.id || !tabHost) {
-                if (!cancelled) setStatus('restricted')
+                if (!aborted()) setStatus('restricted')
                 return
             }
 
             const fonts = await loadCachedLocalFonts()
-            if (cancelled) return
+            if (aborted()) return
 
             if (!fonts.length) {
                 setStatus('permission-required')
@@ -210,15 +235,17 @@ export function usePopupController() {
             }
 
             const cachedVersion = await loadCachedLocalFontsVersion()
-            if (cancelled) return
+            if (aborted()) return
             setCacheStale(cachedVersion < FONT_CACHE_VERSION)
 
-            const response = await sendToTab<GetUsedFontsResponse>(tab.id, { type: 'GET_USED_FONTS' })
-            if (cancelled) return
+            const response = await sendToTab<GetUsedFontsResponse>(tab.id, {
+                type: 'GET_USED_FONTS',
+            })
+            if (aborted()) return
 
             const host = response?.hostname || tabHost
             const saved = await loadMappingsForHost(host)
-            if (cancelled) return
+            if (aborted()) return
 
             setTabId(tab.id)
             setHostname(host)
@@ -230,11 +257,11 @@ export function usePopupController() {
                 return
             }
 
-            setUsedFonts(response.fonts || [])
+            setUsedFonts(response.fonts)
             setStatus('ready')
         })()
         return () => {
-            cancelled = true
+            controller.abort()
         }
     }, [])
 
@@ -249,9 +276,7 @@ export function usePopupController() {
             return () => {
                 try {
                     port.disconnect()
-                } catch {
-                    // Already disconnected by the tab side.
-                }
+                } catch {}
                 portRef.current = null
             }
         } catch {
@@ -260,29 +285,29 @@ export function usePopupController() {
     }, [tabId])
 
     return {
-        status,
-        hostname,
-        usedFonts,
-        localFonts,
-        mappings,
+        allSources,
         cacheStale,
         familyOptions,
-        localFontIndex,
-        mappedCount,
-        totalCount,
-        usedFontsSet,
-        allSources,
         handleChange,
-        handleScaleChange,
-        handleStyleChange,
-        handleLineHeightChange,
-        handleLetterSpacingChange,
-        handleWordSpacingChange,
         handleColorChange,
         handleHover,
-        handleReset,
-        handleReload,
+        handleLetterSpacingChange,
+        handleLineHeightChange,
         handleOpenOptions,
         handleRefreshFonts,
+        handleReload,
+        handleReset,
+        handleScaleChange,
+        handleStyleChange,
+        handleWordSpacingChange,
+        hostname,
+        localFontIndex,
+        localFonts,
+        mappedCount,
+        mappings,
+        status,
+        totalCount,
+        usedFonts,
+        usedFontsSet,
     }
 }

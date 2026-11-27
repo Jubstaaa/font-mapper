@@ -1,20 +1,39 @@
 import type { FontMapping } from '@/lib/chrome-storage.types'
+
 import { CSS_WIDE_KEYWORDS } from '@/lib/font-family'
+
+export interface ChainMatch {
+    mapping: FontMapping
+    sourceKey: string
+}
+
+export function matchChain(
+    chain: string[],
+    lookup: Map<string, FontMapping>
+): ChainMatch | null {
+    for (const font of chain) {
+        const key = font.toLowerCase()
+        if (CSS_WIDE_KEYWORDS.has(key)) continue
+        const mapping = lookup.get(key)
+        if (mapping) return { mapping, sourceKey: key }
+    }
+    return null
+}
 
 export function parseFontFamilyChain(value: string): string[] {
     const parts: string[] = []
     let buf = ''
-    let quote: string | null = null
+    let quote: null | string = null
     for (let i = 0; i < value.length; i++) {
         const ch = value[i]
         if (quote) {
             if (ch === '\\' && i + 1 < value.length) {
-                buf += value[i + 1]
+                buf += value[i + 1] ?? ''
                 i++
             } else if (ch === quote) {
                 quote = null
             } else {
-                buf += ch
+                buf += ch ?? ''
             }
         } else if (ch === '"' || ch === "'") {
             quote = ch
@@ -22,10 +41,10 @@ export function parseFontFamilyChain(value: string): string[] {
             const t = buf.trim()
             if (t) parts.push(t)
             buf = ''
-        } else if (/\s/.test(ch)) {
+        } else if (ch !== undefined && /\s/.test(ch)) {
             if (!buf.endsWith(' ')) buf += ' '
         } else {
-            buf += ch
+            buf += ch ?? ''
         }
     }
     const tail = buf.trim()
@@ -33,22 +52,7 @@ export function parseFontFamilyChain(value: string): string[] {
     return parts
 }
 
-export interface ChainMatch {
-    sourceKey: string
-    mapping: FontMapping
-}
-
-export function matchChain(chain: string[], lookup: Map<string, FontMapping>): ChainMatch | null {
-    for (const font of chain) {
-        const key = font.toLowerCase()
-        if (CSS_WIDE_KEYWORDS.has(key)) continue
-        const mapping = lookup.get(key)
-        if (mapping) return { sourceKey: key, mapping }
-    }
-    return null
-}
-
-export function pickPickerName(value: string): string | null {
+export function pickPickerName(value: string): null | string {
     const trimmed = value.trim().replace(/^["']|["']$/g, '')
     if (!trimmed) return null
     if (CSS_WIDE_KEYWORDS.has(trimmed.toLowerCase())) return null

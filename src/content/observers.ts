@@ -1,6 +1,11 @@
 import { debounce } from 'es-toolkit/function'
 
-import { applyToElement, clearAllOverrides, hasMappings, walkAll } from './element-override'
+import {
+    applyToElement,
+    clearAllOverrides,
+    hasMappings,
+    walkAll,
+} from './element-override'
 
 function runIdle(cb: () => void, timeout = 200): void {
     if (typeof window.requestIdleCallback === 'function') {
@@ -59,6 +64,7 @@ const domObserver = new MutationObserver(records => {
 
 export function startObservers(): void {
     const root = document.documentElement
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- lib.dom types this as non-null, but a document_start content script runs before it exists
     if (root) domObserver.observe(root, { childList: true, subtree: true })
 }
 

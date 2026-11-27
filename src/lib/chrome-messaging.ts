@@ -2,6 +2,25 @@ import type { FontMap } from './chrome-storage.types'
 
 export const POPUP_PORT_NAME = 'font-mapper-popup'
 
+export interface ApplyMappingsMessage {
+    mappings: FontMap
+    type: 'APPLY_MAPPINGS'
+}
+
+export interface ApplyMappingsResponse {
+    ok: true
+}
+
+export interface ClearHighlightMessage {
+    type: 'CLEAR_HIGHLIGHT'
+}
+
+export type ExtensionMessage =
+    | ApplyMappingsMessage
+    | ClearHighlightMessage
+    | GetUsedFontsMessage
+    | HighlightFontMessage
+
 export interface GetUsedFontsMessage {
     type: 'GET_USED_FONTS'
 }
@@ -11,28 +30,18 @@ export interface GetUsedFontsResponse {
     hostname: string
 }
 
-export interface ApplyMappingsMessage {
-    type: 'APPLY_MAPPINGS'
-    mappings: FontMap
-}
-
-export interface ApplyMappingsResponse {
-    ok: true
-}
-
 export interface HighlightFontMessage {
-    type: 'HIGHLIGHT_FONT'
     font: string
+    type: 'HIGHLIGHT_FONT'
 }
 
-export interface ClearHighlightMessage {
-    type: 'CLEAR_HIGHLIGHT'
-}
+export type PortMessage = ClearHighlightMessage | HighlightFontMessage
 
-export type ExtensionMessage = GetUsedFontsMessage | ApplyMappingsMessage | HighlightFontMessage | ClearHighlightMessage
-
-export type PortMessage = HighlightFontMessage | ClearHighlightMessage
-
-export function sendToTab<TResponse>(tabId: number, message: ExtensionMessage): Promise<TResponse | undefined> {
-    return chrome.tabs.sendMessage<ExtensionMessage, TResponse>(tabId, message).catch(() => undefined)
+export function sendToTab<TResponse>(
+    tabId: number,
+    message: ExtensionMessage
+): Promise<TResponse | undefined> {
+    return chrome.tabs
+        .sendMessage<ExtensionMessage, TResponse>(tabId, message)
+        .catch(() => undefined)
 }

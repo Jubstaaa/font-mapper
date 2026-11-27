@@ -4,7 +4,9 @@ import { httpHostname } from './page-host'
 
 describe('httpHostname', () => {
     it('returns the hostname of http and https URLs', () => {
-        expect(httpHostname('https://www.example.com:8443/a?b')).toBe('www.example.com')
+        expect(httpHostname('https://www.example.com:8443/a?b')).toBe(
+            'www.example.com'
+        )
         expect(httpHostname('http://localhost:5173/')).toBe('localhost')
     })
 

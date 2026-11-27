@@ -7,12 +7,24 @@ afterEach(cleanup)
 
 describe('MappingWarning', () => {
     it('can be reached with the keyboard and explains itself on focus', async () => {
-        render(<MappingWarning kind="missing" label="Target font missing" tooltip="Install it locally." />)
+        render(
+            <MappingWarning
+                kind="missing"
+                label="Target font missing"
+                tooltip="Install it locally."
+            />
+        )
 
-        const trigger = screen.getByText('Target font missing').closest('[data-slot="tooltip-trigger"]') as HTMLElement
+        const trigger = screen
+            .getByText('Target font missing')
+            .closest('[data-slot="tooltip-trigger"]')
+        if (!(trigger instanceof HTMLElement))
+            throw new Error('No tooltip trigger')
         expect(trigger.tabIndex).toBe(0)
 
         fireEvent.focus(trigger)
-        expect((await screen.findByRole('tooltip')).textContent).toContain('Install it locally.')
+        expect((await screen.findByRole('tooltip')).textContent).toContain(
+            'Install it locally.'
+        )
     })
 })

@@ -1,4 +1,13 @@
-import { Check, Download, RefreshCw, ShieldAlert, Sparkles, Trash2, Upload, X } from 'lucide-react'
+import {
+    Check,
+    Download,
+    RefreshCw,
+    ShieldAlert,
+    Sparkles,
+    Trash2,
+    Upload,
+    X,
+} from 'lucide-react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -19,38 +28,53 @@ import { cn } from '@/lib/utils'
 import { useBackupActions, useFontAccess } from './options.hooks'
 
 export function Options() {
-    const { status, fontCount, familyCount, errorMessage, handleGrant } = useFontAccess()
-    const { backupMessage, importInputRef, handleExport, handleImportFile, handleReset } = useBackupActions()
+    const { errorMessage, familyCount, fontCount, handleGrant, status } =
+        useFontAccess()
+    const {
+        backupMessage,
+        handleExport,
+        handleImportFile,
+        handleReset,
+        importInputRef,
+    } = useBackupActions()
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
             <div className="mx-auto flex max-w-xl flex-col gap-8 px-6 py-12">
                 <header className="flex flex-col items-center gap-4 text-center">
                     <img
-                        src="/icon-128.png"
                         alt=""
                         className="size-16 rounded-2xl ring-1 ring-black/5 dark:ring-white/10"
+                        src="/icon-128.png"
                     />
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">FontMapper Settings</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                            FontMapper Settings
+                        </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Grant access to your local fonts so FontMapper can swap them on any site.
+                            Grant access to your local fonts so FontMapper can
+                            swap them on any site.
                         </p>
                     </div>
                 </header>
 
                 <main className="rounded-xl border border-border bg-card p-6 shadow-sm">
                     {status === 'checking' && (
-                        <p className="text-center text-sm text-muted-foreground">Checking permissions…</p>
+                        <p className="text-center text-sm text-muted-foreground">
+                            Checking permissions…
+                        </p>
                     )}
 
                     {status === 'unsupported' && (
                         <div className="flex flex-col items-center gap-3 text-center">
                             <ShieldAlert className="size-8 text-destructive" />
-                            <h2 className="text-base font-medium">Browser not supported</h2>
+                            <h2 className="text-base font-medium">
+                                Browser not supported
+                            </h2>
                             <p className="text-sm text-muted-foreground">
-                                FontMapper needs the Local Font Access API, available in Chrome 103 or later. Please
-                                update your browser.
+                                FontMapper needs the Local Font Access API,
+                                available in Chrome 103 or later. Please update
+                                your browser.
                             </p>
                         </div>
                     )}
@@ -58,12 +82,19 @@ export function Options() {
                     {status === 'idle' && (
                         <div className="flex flex-col items-center gap-4 text-center">
                             <Sparkles className="size-8 text-primary" />
-                            <h2 className="text-base font-medium">One-time font access</h2>
+                            <h2 className="text-base font-medium">
+                                One-time font access
+                            </h2>
                             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                                Click below and Chrome will ask if FontMapper can view the fonts installed on your
-                                computer. Nothing leaves your device — the list is cached locally so swaps are instant.
+                                Click below and Chrome will ask if FontMapper
+                                can view the fonts installed on your computer.
+                                Nothing leaves your device — the list is cached
+                                locally so swaps are instant.
                             </p>
-                            <Button onClick={handleGrant} size="lg" className="mt-2">
+                            <Button
+                                className="mt-2"
+                                onClick={() => void handleGrant()}
+                                size="lg">
                                 Grant font access
                             </Button>
                         </div>
@@ -72,20 +103,31 @@ export function Options() {
                     {status === 'loading' && (
                         <div className="flex flex-col items-center gap-3 text-center">
                             <RefreshCw className="size-6 animate-spin text-primary" />
-                            <p className="text-sm text-muted-foreground">Waiting for permission…</p>
+                            <p className="text-sm text-muted-foreground">
+                                Waiting for permission…
+                            </p>
                         </div>
                     )}
 
                     {status === 'refresh-pending' && (
                         <div className="flex flex-col items-center gap-4 text-center">
                             <RefreshCw className="size-8 text-primary" />
-                            <h2 className="text-base font-medium">Rescan your fonts</h2>
+                            <h2 className="text-base font-medium">
+                                Rescan your fonts
+                            </h2>
                             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                                Chrome hands over your font list only right after a click, so press the button below to
-                                rescan. <span className="font-medium text-foreground">{fontCount}</span> styles are
-                                cached right now.
+                                Chrome hands over your font list only right
+                                after a click, so press the button below to
+                                rescan.{' '}
+                                <span className="font-medium text-foreground">
+                                    {fontCount}
+                                </span>{' '}
+                                styles are cached right now.
                             </p>
-                            <Button onClick={handleGrant} size="lg" className="mt-2">
+                            <Button
+                                className="mt-2"
+                                onClick={() => void handleGrant()}
+                                size="lg">
                                 <RefreshCw className="mr-1.5 size-4" />
                                 Rescan fonts
                             </Button>
@@ -97,14 +139,25 @@ export function Options() {
                             <div className="flex size-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                                 <Check className="size-5" />
                             </div>
-                            <h2 className="text-base font-medium">You're all set</h2>
+                            <h2 className="text-base font-medium">
+                                You're all set
+                            </h2>
                             <p className="text-sm text-muted-foreground">
-                                <span className="font-medium text-foreground">{familyCount}</span> font{' '}
-                                {familyCount === 1 ? 'family' : 'families'} (
-                                <span className="font-medium text-foreground">{fontCount}</span> styles) cached. Open
-                                the FontMapper popup on any site to start mapping.
+                                <span className="font-medium text-foreground">
+                                    {familyCount}
+                                </span>{' '}
+                                font {familyCount === 1 ? 'family' : 'families'}{' '}
+                                (
+                                <span className="font-medium text-foreground">
+                                    {fontCount}
+                                </span>{' '}
+                                styles) cached. Open the FontMapper popup on any
+                                site to start mapping.
                             </p>
-                            <Button onClick={handleGrant} variant="outline" size="sm">
+                            <Button
+                                onClick={() => void handleGrant()}
+                                size="sm"
+                                variant="outline">
                                 <RefreshCw className="mr-1.5 size-3.5" />
                                 Refresh font list
                             </Button>
@@ -114,9 +167,11 @@ export function Options() {
                                 </code>
                             )}
                             <p className="max-w-sm text-[11px] leading-relaxed text-muted-foreground">
-                                Fonts missing? Chrome scans your system only once per browser session — quit Chrome
-                                completely, reopen it, then refresh here. Fonts handled by a font manager need to be
-                                active before Chrome starts.
+                                Fonts missing? Chrome scans your system only
+                                once per browser session — quit Chrome
+                                completely, reopen it, then refresh here. Fonts
+                                handled by a font manager need to be active
+                                before Chrome starts.
                             </p>
                         </div>
                     )}
@@ -126,17 +181,22 @@ export function Options() {
                             <div className="flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
                                 <X className="size-5" />
                             </div>
-                            <h2 className="text-base font-medium">Permission not granted</h2>
+                            <h2 className="text-base font-medium">
+                                Permission not granted
+                            </h2>
                             <p className="text-sm text-muted-foreground">
-                                FontMapper cannot read your local fonts without permission. Try again or check Chrome's
-                                site settings.
+                                FontMapper cannot read your local fonts without
+                                permission. Try again or check Chrome's site
+                                settings.
                             </p>
                             {errorMessage && (
                                 <code className="rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">
                                     {errorMessage}
                                 </code>
                             )}
-                            <Button onClick={handleGrant} size="sm">
+                            <Button
+                                onClick={() => void handleGrant()}
+                                size="sm">
                                 Try again
                             </Button>
                         </div>
@@ -146,18 +206,27 @@ export function Options() {
                 <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
                     <div className="mb-4 flex items-center gap-2">
                         <Download className="size-4 text-muted-foreground" />
-                        <h2 className="text-base font-medium">Backup &amp; restore</h2>
+                        <h2 className="text-base font-medium">
+                            Backup &amp; restore
+                        </h2>
                     </div>
                     <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-                        Save your font mappings to a JSON file, move them to another computer, or wipe them clean.
+                        Save your font mappings to a JSON file, move them to
+                        another computer, or wipe them clean.
                     </p>
                     <div className="flex flex-col gap-3">
                         <div className="grid grid-cols-2 gap-2">
-                            <Button onClick={handleExport} variant="outline" size="sm">
+                            <Button
+                                onClick={() => void handleExport()}
+                                size="sm"
+                                variant="outline">
                                 <Download className="mr-1.5 size-3.5" />
                                 Export mappings
                             </Button>
-                            <Button onClick={() => importInputRef.current?.click()} variant="outline" size="sm">
+                            <Button
+                                onClick={() => importInputRef.current?.click()}
+                                size="sm"
+                                variant="outline">
                                 <Upload className="mr-1.5 size-3.5" />
                                 Import mappings
                             </Button>
@@ -166,55 +235,71 @@ export function Options() {
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button
-                                    variant="outline"
-                                    size="sm"
                                     className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive dark:border-destructive/60"
-                                >
+                                    size="sm"
+                                    variant="outline">
                                     <Trash2 className="mr-1.5 size-3.5" />
                                     Clear all mappings
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Clear all mappings?</AlertDialogTitle>
+                                    <AlertDialogTitle>
+                                        Clear all mappings?
+                                    </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Delete all font mappings on every site? This cannot be undone.
+                                        Delete all font mappings on every site?
+                                        This cannot be undone.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction variant="destructive" onClick={() => void handleReset()}>
+                                    <AlertDialogCancel>
+                                        Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => void handleReset()}
+                                        variant="destructive">
                                         Delete all
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
                         <input
-                            ref={importInputRef}
-                            type="file"
                             accept="application/json,.json"
                             className="hidden"
-                            onChange={async e => {
+                            onChange={e => {
                                 const file = e.target.files?.[0]
-                                if (file) await handleImportFile(file)
-                                e.target.value = ''
+                                const input = e.target
+                                void (async () => {
+                                    if (file) await handleImportFile(file)
+                                    input.value = ''
+                                })()
                             }}
+                            ref={importInputRef}
+                            type="file"
                         />
                     </div>
                     {backupMessage && (
                         <Alert
-                            role="status"
-                            variant={backupMessage.tone === 'ok' ? 'default' : 'destructive'}
                             className={cn(
                                 'mt-3 px-3 py-2 text-[11px]',
-                                backupMessage.tone === 'ok' && 'text-emerald-700 dark:text-emerald-400',
+                                backupMessage.tone === 'ok' &&
+                                    'text-emerald-700 dark:text-emerald-400'
                             )}
-                        >
-                            <AlertDescription className="text-inherit">{backupMessage.text}</AlertDescription>
+                            role="status"
+                            variant={
+                                backupMessage.tone === 'ok'
+                                    ? 'default'
+                                    : 'destructive'
+                            }>
+                            <AlertDescription className="text-inherit">
+                                {backupMessage.text}
+                            </AlertDescription>
                         </Alert>
                     )}
                     <p className="mt-3 text-[11px] text-muted-foreground">
-                        Import replaces all current mappings with the file's contents.
+                        Import replaces all current mappings with the file's
+                        contents.
                     </p>
                 </section>
 

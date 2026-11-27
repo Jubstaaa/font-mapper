@@ -2,17 +2,17 @@ import { useState } from 'react'
 import { useDebouncedCallback } from 'use-debounce'
 
 export interface UseDebouncedCommitResult<TValue> {
-    draft: TValue
-    setDraft: (value: TValue) => void
+    cancel: () => void
     change: (value: TValue) => void
     commit: (value: TValue) => void
-    cancel: () => void
+    draft: TValue
+    setDraft: (value: TValue) => void
 }
 
 export function useDebouncedCommit<TValue>(
     persisted: TValue,
     onCommit: (value: TValue) => void,
-    delay = 180,
+    delay = 180
 ): UseDebouncedCommitResult<TValue> {
     const [draft, setDraft] = useState(persisted)
     const [lastPersisted, setLastPersisted] = useState(persisted)
@@ -33,5 +33,5 @@ export function useDebouncedCommit<TValue>(
         onCommit(value)
     }
 
-    return { draft, setDraft, change, commit, cancel: debouncedCommit.cancel }
+    return { cancel: debouncedCommit.cancel, change, commit, draft, setDraft }
 }

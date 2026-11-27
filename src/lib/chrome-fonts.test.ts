@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type { LocalFont } from './chrome-fonts'
+
 import {
     countFamilies,
     getFamilyVariants,
@@ -7,32 +9,53 @@ import {
     isMappingInstalledLocally,
     listLocalFonts,
 } from './chrome-fonts'
-import type { LocalFont } from './chrome-fonts'
 
-function font(family: string, style: string, fullName = `${family} ${style}`): LocalFont {
-    return { family, fullName, postscriptName: `${family}-${style}`.replace(/\s+/g, ''), style }
+function font(
+    family: string,
+    style: string,
+    fullName = `${family} ${style}`
+): LocalFont {
+    return {
+        family,
+        fullName,
+        postscriptName: `${family}-${style}`.replace(/\s+/g, ''),
+        style,
+    }
 }
 
 describe('isMappingInstalledLocally', () => {
-    const fonts = [font('Inter', 'Regular'), font('Fira Code', 'Bold', 'Fira Code Bold')]
+    const fonts = [
+        font('Inter', 'Regular'),
+        font('Fira Code', 'Bold', 'Fira Code Bold'),
+    ]
 
     it('matches by family name', () => {
         expect(isMappingInstalledLocally({ name: 'Inter' }, fonts)).toBe(true)
     })
 
     it('matches by postscript id', () => {
-        expect(isMappingInstalledLocally({ name: 'Renamed', id: 'FiraCode-Bold' }, fonts)).toBe(true)
+        expect(
+            isMappingInstalledLocally(
+                { id: 'FiraCode-Bold', name: 'Renamed' },
+                fonts
+            )
+        ).toBe(true)
     })
 
     it('matches by full name', () => {
-        expect(isMappingInstalledLocally({ name: 'Fira Code Bold' }, fonts)).toBe(true)
+        expect(
+            isMappingInstalledLocally({ name: 'Fira Code Bold' }, fonts)
+        ).toBe(true)
     })
 
     it('is case-sensitive and ignores an empty id', () => {
         expect(isMappingInstalledLocally({ name: 'inter' }, fonts)).toBe(false)
-        expect(isMappingInstalledLocally({ name: 'Missing', id: '' }, [{ ...fonts[0], postscriptName: '' }])).toBe(
-            false,
-        )
+        expect(
+            isMappingInstalledLocally(
+                { id: '', name: 'Missing' },
+                fonts.slice(0, 1).map(font => ({ ...font, postscriptName: '' }))
+            )
+        ).toBe(false)
     })
 
     it('returns false for no fonts', () => {
@@ -42,7 +65,13 @@ describe('isMappingInstalledLocally', () => {
 
 describe('countFamilies', () => {
     it('counts distinct families', () => {
-        expect(countFamilies([font('Inter', 'Regular'), font('Inter', 'Bold'), font('Roboto', 'Regular')])).toBe(2)
+        expect(
+            countFamilies([
+                font('Inter', 'Regular'),
+                font('Inter', 'Bold'),
+                font('Roboto', 'Regular'),
+            ])
+        ).toBe(2)
         expect(countFamilies([])).toBe(0)
     })
 })
@@ -60,31 +89,38 @@ describe('getFamilyVariants', () => {
         ]
 
         expect(getFamilyVariants('Inter', fonts)).toEqual({
-            regular: fonts[5],
             bold: fonts[4],
-            italic: fonts[2],
             boldItalic: fonts[0],
+            italic: fonts[2],
+            regular: fonts[5],
         })
     })
 
     it('treats oblique as italic and book/roman as regular', () => {
         const fonts = [font('Old', 'Oblique'), font('Old', 'Book')]
 
-        expect(getFamilyVariants('Old', fonts)).toMatchObject({ regular: fonts[1], italic: fonts[0] })
+        expect(getFamilyVariants('Old', fonts)).toMatchObject({
+            italic: fonts[0],
+            regular: fonts[1],
+        })
     })
 
     it('falls back to the closest weight when no regular face exists', () => {
-        const fonts = [font('Thin', 'Bold'), font('Thin', 'Light'), font('Thin', 'Medium')]
+        const fonts = [
+            font('Thin', 'Bold'),
+            font('Thin', 'Light'),
+            font('Thin', 'Medium'),
+        ]
 
         expect(getFamilyVariants('Thin', fonts).regular).toBe(fonts[2])
     })
 
     it('returns all nulls for an unknown family', () => {
         expect(getFamilyVariants('Nope', [font('Inter', 'Regular')])).toEqual({
-            regular: null,
             bold: null,
-            italic: null,
             boldItalic: null,
+            italic: null,
+            regular: null,
         })
     })
 })
@@ -96,7 +132,9 @@ describe('listLocalFonts', () => {
 
     it('throws when the Local Font Access API is missing', async () => {
         expect(isLocalFontsApiAvailable()).toBe(false)
-        await expect(listLocalFonts()).rejects.toThrow('LOCAL_FONTS_API_UNAVAILABLE')
+        await expect(listLocalFonts()).rejects.toThrow(
+            'LOCAL_FONTS_API_UNAVAILABLE'
+        )
     })
 
     it('sorts by family, then regular-ish faces first', async () => {

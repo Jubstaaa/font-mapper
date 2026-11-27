@@ -2,16 +2,6 @@ import { migrateMappingsToSync } from '@/lib/chrome-storage-migration'
 
 import { refreshAllBadges } from './badge'
 
-function openOptionsTab(): void {
-    chrome.tabs.create({ url: chrome.runtime.getURL('options.html') })
-}
-
-function runMigrationThenRefreshBadges(): void {
-    void migrateMappingsToSync()
-        .then(refreshAllBadges)
-        .catch(() => {})
-}
-
 export function registerLifecycleListeners(): void {
     chrome.runtime.onInstalled.addListener(({ reason }) => {
         if (reason === 'install') openOptionsTab()
@@ -21,4 +11,14 @@ export function registerLifecycleListeners(): void {
     chrome.runtime.onStartup.addListener(() => {
         runMigrationThenRefreshBadges()
     })
+}
+
+function openOptionsTab(): void {
+    void chrome.tabs.create({ url: chrome.runtime.getURL('options.html') })
+}
+
+function runMigrationThenRefreshBadges(): void {
+    void migrateMappingsToSync()
+        .then(refreshAllBadges)
+        .catch(() => {})
 }
