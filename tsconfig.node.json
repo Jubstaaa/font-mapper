@@ -1,5 +1,5 @@
 {
-    "extends": "@jubstaaa/config/tsconfig/base",
+    "extends": "@jubstaa/config/tsconfig/base",
     "compilerOptions": {
         "allowImportingTsExtensions": true,
         "lib": ["ES2023"],
@@ -11,6 +11,8 @@
         "types": ["node"]
     },
     "include": [
+        "prettier.config.ts",
+        "eslint.config.ts",
         "vite.config.ts",
         "vitest.config.ts",
         "manifest.config.ts",
